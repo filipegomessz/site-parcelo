@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parcelô — confirmar ação da conta</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="../assets/style.css">
+<!--
+  Página que conclui as ações de conta do Parcelô: confirmar e-mail, criar uma
+  senha nova, desfazer troca de e-mail. É o "URL acionável personalizado" do
+  Firebase Auth — antes disso, o link do e-mail levava para
+  parcelo1.firebaseapp.com, um domínio que ninguém reconhece. Num app de
+  finanças, link estranho é o que ensina a pessoa a clicar em link de golpe.
+
+  SEM SDK, SEM CDN. As chamadas vão direto na API REST do Identity Toolkit
+  pelo fetch. O motivo é o mesmo que já está escrito no topo do style.css: a
+  página não busca nada em servidor de terceiro, então quem abre não entrega
+  o IP para ninguém além do serviço que é o destino da própria ação.
+
+  A chave da API vem NA URL do link (o Firebase sempre a inclui). Não é
+  segredo — é identificador público de projeto — e não fica escrita aqui de
+  propósito: se faltar, o link está incompleto e a página diz isso, em vez de
+  tentar adivinhar com uma chave que pode nem valer para a web.
+-->
+<style>
+  /* Só o que a página precisa a mais. O mundo visual (fundo, feixe, cores,
+     foco visível) vem do style.css compartilhado. */
+  .acao-status {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 0 0 0.9rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+  }
+
+  .selo {
+    flex: none;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .selo-ok {
+    background: rgba(0, 200, 111, 0.16);
+    color: var(--mint);
+  }
+
+  .selo-erro {
+    background: rgba(243, 231, 205, 0.1);
+    color: #f3e7cd;
+  }
+
+  /* A espera tem que parecer viva sem piscar na cara de ninguém: pulso lento,
+     e parado de vez para quem pediu menos movimento no sistema. */
+  .selo-espera {
+    background: rgba(0, 200, 111, 0.16);
+    color: var(--mint);
+    animation: pulso 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulso {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .selo-espera { animation: none; }
+  }
+
+  .campo {
+    margin: 0 0 1rem;
+  }
+
+  .campo label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .campo-linha {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  input[type="password"],
+  input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: #0d2018;
+    border: 1px solid var(--divider);
+    border-radius: 0.7rem;
+    padding: 0.7rem 0.85rem;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--beam);
+    outline-offset: 1px;
+  }
+
+  button {
+    background: var(--mint);
+    color: #04120b;
+    border: 0;
+    border-radius: 0.7rem;
+    padding: 0.75rem 1.15rem;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--beam);
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--beam);
+    outline-offset: 3px;
+  }
+
+  .btn-fantasma {
+    background: transparent;
+    color: var(--mint);
+    border: 1px solid var(--divider);
+    font-weight: 600;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .btn-fantasma:hover:not(:disabled) {
+    background: rgba(0, 200, 111, 0.08);
+    color: var(--beam);
+  }
+
+  .erro-campo {
+    color: #f3e7cd;
+    font-size: 0.88rem;
+    margin: -0.4rem 0 0.9rem;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="../"><span class="dot"></span>Parcelô</a>
+  <h1 id="titulo">Confirmando…</h1>
+  <p class="updated">Ação da sua conta</p>
+</header>
+
+<main>
+  <div class="card">
+    <p class="acao-status">
+      <span class="selo selo-espera" id="selo" aria-hidden="true">•</span>
+      <span id="status" role="status" aria-live="polite">Lendo o link…</span>
+    </p>
+    <p id="detalhe"></p>
+
+    <!-- Confirmação por clique: e-mail corporativo e antivírus abrem links
+         sozinhos para escanear. Aplicar a ação no carregamento faria o
+         código ser gasto por um robô, e a pessoa receberia "link já usado"
+         sem ter clicado em nada. -->
+    <div id="areaConfirmar" hidden>
+      <button type="button" id="btnConfirmar">Confirmar</button>
+    </div>
+
+    <form id="areaSenha" hidden autocomplete="off">
+      <div class="campo">
+        <label for="senha">Nova senha</label>
+        <div class="campo-linha">
+          <input type="password" id="senha" autocomplete="new-password"
+                 minlength="6" required>
+          <button type="button" class="btn-fantasma" id="verSenha"
+                  aria-label="Mostrar a senha">Mostrar</button>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="senha2">Repita a senha</label>
+        <div class="campo-linha">
+          <input type="password" id="senha2" autocomplete="new-password"
+                 minlength="6" required>
+          <button type="button" class="btn-fantasma" id="verSenha2"
+                  aria-label="Mostrar a senha repetida">Mostrar</button>
+        </div>
+      </div>
+      <p class="erro-campo" id="erroSenha" role="alert" hidden></p>
+      <button type="submit" id="btnSalvar">Salvar nova senha</button>
+    </form>
+  </div>
+
+  <p id="rodapeAjuda" hidden>Precisa de ajuda? Escreva para
+    <a href="mailto:contato@parceloapp.com.br">contato@parceloapp.com.br</a>.</p>
+</main>
+
+<footer>
+  Parcelô é mantido por Filipe Pimentel Gomes, Santos/SP.
+</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = 'https://identitytoolkit.googleapis.com/v1/accounts:';
+  var params = new URLSearchParams(window.location.search);
+  var modo = params.get('mode');
+  var oob = params.get('oobCode');
+  var chave = params.get('apiKey');
+
+  var elTitulo = document.getElementById('titulo');
+  var elStatus = document.getElementById('status');
+  var elSelo = document.getElementById('selo');
+  var elDetalhe = document.getElementById('detalhe');
+  var areaConfirmar = document.getElementById('areaConfirmar');
+  var btnConfirmar = document.getElementById('btnConfirmar');
+  var areaSenha = document.getElementById('areaSenha');
+  var erroSenha = document.getElementById('erroSenha');
+  var btnSalvar = document.getElementById('btnSalvar');
+  var rodapeAjuda = document.getElementById('rodapeAjuda');
+
+  function pintar(estado, titulo, texto, detalhe) {
+    elSelo.className = 'selo selo-' + estado;
+    elSelo.textContent = estado === 'ok' ? '✓' : estado === 'erro' ? '!' : '•';
+    elTitulo.textContent = titulo;
+    // textContent, nunca innerHTML: o e-mail vem de uma resposta de rede e
+    // não pode virar marcação dentro da página.
+    elStatus.textContent = texto;
+    elDetalhe.textContent = detalhe || '';
+    if (estado === 'erro') rodapeAjuda.hidden = false;
+  }
+
+  /** POST no Identity Toolkit, com desistência por tempo — a página nunca
+      pode ficar pendurada esperando rede que não volta. */
+  function chamar(metodo, corpo) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 15000);
+    corpo.oobCode = oob;
+    return fetch(API + metodo + '?key=' + encodeURIComponent(chave), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+      signal: ctrl.signal
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) {
+          var m = (j.error && j.error.message) || 'ERRO';
+          throw new Error(String(m).split(' ')[0]);
+        }
+        return j;
+      });
+    }).finally(function () { clearTimeout(timer); });
+  }
+
+  /** Tradução dos códigos do servidor. Nenhuma mensagem crua chega na tela:
+      elas vêm em inglês e descrevem o estado interno do projeto. */
+  function recado(codigo) {
+    switch (codigo) {
+      case 'EXPIRED_OOB_CODE':
+        return 'Este link expirou. Peça um novo pelo aplicativo.';
+      case 'INVALID_OOB_CODE':
+        return 'Este link já foi usado ou não vale mais. ' +
+               'Peça um novo pelo aplicativo.';
+      case 'USER_DISABLED':
+        return 'Esta conta está desativada.';
+      case 'WEAK_PASSWORD':
+        return 'A senha precisa de pelo menos 6 caracteres.';
+      case 'AbortError':
+      case 'TypeError':
+        return 'Não deu para falar com o servidor. Confira a conexão e ' +
+               'tente de novo.';
+      default:
+        return 'Não foi possível concluir. Peça um novo link pelo aplicativo.';
+    }
+  }
+
+  function falhar(e) {
+    var codigo = e && (e.name === 'AbortError' ? 'AbortError' : e.message);
+    pintar('erro', 'Não deu certo', recado(codigo));
+    areaConfirmar.hidden = true;
+    areaSenha.hidden = true;
+  }
+
+  // ── Ações ──────────────────────────────────────────────────────────
+
+  function confirmarEmail(ehTroca) {
+    btnConfirmar.disabled = true;
+    pintar('espera', 'Confirmando…', 'Só um instante.');
+    chamar('update', {}).then(function () {
+      pintar(
+        'ok',
+        ehTroca ? 'E-mail restaurado' : 'E-mail confirmado',
+        ehTroca
+          ? 'Sua conta voltou para o e-mail anterior.'
+          : 'Pronto. Pode voltar para o aplicativo — o aviso some sozinho.'
+      );
+      areaConfirmar.hidden = true;
+    }).catch(function (e) {
+      btnConfirmar.disabled = false;
+      falhar(e);
+    });
+  }
+
+  function prepararSenha() {
+    // Mandar só o oobCode VERIFICA o código sem gastá-lo: dá para saber de
+    // qual conta é o link antes de a pessoa digitar qualquer coisa.
+    chamar('resetPassword', {}).then(function (r) {
+      pintar(
+        'espera',
+        'Criar uma nova senha',
+        r.email ? 'Conta: ' + r.email : 'Escolha a nova senha da sua conta.',
+        'Depois de salvar, entre no aplicativo com ela.'
+      );
+      areaSenha.hidden = false;
+      document.getElementById('senha').focus();
+    }).catch(falhar);
+  }
+
+  function salvarSenha(ev) {
+    ev.preventDefault();
+    var s1 = document.getElementById('senha').value;
+    var s2 = document.getElementById('senha2').value;
+    erroSenha.hidden = true;
+
+    if (s1.length < 6) {
+      erroSenha.textContent = 'A senha precisa de pelo menos 6 caracteres.';
+      erroSenha.hidden = false;
+      return;
+    }
+    if (s1 !== s2) {
+      erroSenha.textContent = 'As senhas devem ser iguais';
+      erroSenha.hidden = false;
+      return;
+    }
+
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Salvando…';
+    chamar('resetPassword', { newPassword: s1 }).then(function () {
+      areaSenha.hidden = true;
+      pintar(
+        'ok',
+        'Senha alterada',
+        'Pronto. Entre no aplicativo com a senha nova.',
+        'Se você não pediu esta troca, escreva para nós agora.'
+      );
+      rodapeAjuda.hidden = false;
+    }).catch(function (e) {
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = 'Salvar nova senha';
+      var codigo = e && (e.name === 'AbortError' ? 'AbortError' : e.message);
+      if (codigo === 'WEAK_PASSWORD') {
+        erroSenha.textContent = recado(codigo);
+        erroSenha.hidden = false;
+        return;
+      }
+      falhar(e);
+    });
+  }
+
+  function ligarOlho(idBotao, idCampo) {
+    document.getElementById(idBotao).addEventListener('click', function () {
+      var campo = document.getElementById(idCampo);
+      var mostrando = campo.type === 'text';
+      campo.type = mostrando ? 'password' : 'text';
+      this.textContent = mostrando ? 'Mostrar' : 'Ocultar';
+      this.setAttribute(
+        'aria-label',
+        (mostrando ? 'Mostrar' : 'Ocultar') + ' a senha'
+      );
+      campo.focus();
+    });
+  }
+
+  // ── Início ─────────────────────────────────────────────────────────
+
+  if (!modo || !oob || !chave) {
+    pintar(
+      'erro',
+      'Link incompleto',
+      'Abra o link direto do e-mail que você recebeu, sem copiar pedaços.'
+    );
+    return;
+  }
+
+  ligarOlho('verSenha', 'senha');
+  ligarOlho('verSenha2', 'senha2');
+  areaSenha.addEventListener('submit', salvarSenha);
+
+  switch (modo) {
+    case 'verifyEmail':
+    case 'verifyAndChangeEmail':
+      pintar(
+        'espera',
+        'Confirmar seu e-mail',
+        'Toque no botão para confirmar que este endereço é seu.'
+      );
+      areaConfirmar.hidden = false;
+      btnConfirmar.textContent = 'Confirmar meu e-mail';
+      btnConfirmar.addEventListener('click', function () {
+        confirmarEmail(false);
+      });
+      break;
+
+    case 'recoverEmail':
+      pintar(
+        'espera',
+        'Desfazer a troca de e-mail',
+        'Alguém trocou o e-mail desta conta. Toque abaixo para voltar ao ' +
+          'endereço anterior.'
+      );
+      areaConfirmar.hidden = false;
+      btnConfirmar.textContent = 'Voltar ao e-mail anterior';
+      btnConfirmar.addEventListener('click', function () {
+        confirmarEmail(true);
+      });
+      break;
+
+    case 'resetPassword':
+      pintar('espera', 'Criar uma nova senha', 'Conferindo o link…');
+      prepararSenha();
+      break;
+
+    default:
+      pintar(
+        'erro',
+        'Link não reconhecido',
+        'Peça um novo pelo aplicativo.'
+      );
+  }
+})();
+</script>
+</body>
+</html>
