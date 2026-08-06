@@ -91,6 +91,14 @@
     gap: 0.5rem;
   }
 
+  /* A regra da senha dita ANTES de digitar. Descobrir a exigência só depois
+     de tocar em salvar é o que faz a pessoa voltar e adivinhar. */
+  .dica {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin: 0.45rem 0 0;
+  }
+
   input[type="password"],
   input[type="text"] {
     flex: 1;
@@ -186,16 +194,17 @@
         <label for="senha">Nova senha</label>
         <div class="campo-linha">
           <input type="password" id="senha" autocomplete="new-password"
-                 minlength="6" required>
+                 minlength="6" maxlength="128" required>
           <button type="button" class="btn-fantasma" id="verSenha"
                   aria-label="Mostrar a senha">Mostrar</button>
         </div>
+        <p class="dica">Mínimo 6 caracteres, com letra e número.</p>
       </div>
       <div class="campo">
         <label for="senha2">Repita a senha</label>
         <div class="campo-linha">
           <input type="password" id="senha2" autocomplete="new-password"
-                 minlength="6" required>
+                 minlength="6" maxlength="128" required>
           <button type="button" class="btn-fantasma" id="verSenha2"
                   aria-label="Mostrar a senha repetida">Mostrar</button>
         </div>
@@ -268,6 +277,43 @@
     }).finally(function () { clearTimeout(timer); });
   }
 
+  // ── A regra da senha ───────────────────────────────────────────────
+  //
+  // ⚠️ Espelho de `passwordRules` em lib/auth/auth_service.dart do app. Esta
+  // página é o ÚNICO lugar onde a senha nova pode ser barrada com a régua do
+  // Parcelô: a política do Firebase não sabe dizer "uma letra" (só maiúscula
+  // e minúscula, separadas), e exigir minúscula lá recusaria `SENHA1`, que o
+  // app aceita — o cadastro passaria a mentir na própria lista de requisitos.
+  // Então lá fica o que é comum aos dois (6+ e número) e o resto vive aqui.
+  //
+  // Mexeu na regra do app? Mexa aqui junto. Duas réguas diferentes pra mesma
+  // senha é como alguém cria uma senha na web e descobre no app que ela não
+  // serve.
+  var SENHA_MIN = 6;
+  // O teto vem da política do Firebase (Tamanho máximo da senha = 128). Passar
+  // disso seria recusado pelo servidor depois de digitar tudo; e o app trava
+  // os campos no mesmo número, senão daria pra criar aqui uma senha que não
+  // cabe no campo de lá.
+  var SENHA_MAX = 128;
+  // Letra inclui acentuada: `senhã` é letra em português, e quem digita não
+  // tem por que saber onde termina o ASCII.
+  var TEM_LETRA = /[a-zA-ZÀ-ÖØ-öø-ÿ]/;
+  var TEM_NUMERO = /[0-9]/;
+  var SENHA_FRACA =
+    'A senha precisa de pelo menos ' + SENHA_MIN +
+    ' caracteres, com letra e número.';
+
+  /** O que impede esta senha de valer — ou nulo, se ela vale. */
+  function problemaDaSenha(s) {
+    if (s.length < SENHA_MIN || !TEM_LETRA.test(s) || !TEM_NUMERO.test(s)) {
+      return SENHA_FRACA;
+    }
+    if (s.length > SENHA_MAX) {
+      return 'A senha pode ter no máximo ' + SENHA_MAX + ' caracteres.';
+    }
+    return null;
+  }
+
   /** Tradução dos códigos do servidor. Nenhuma mensagem crua chega na tela:
       elas vêm em inglês e descrevem o estado interno do projeto. */
   function recado(codigo) {
@@ -280,7 +326,7 @@
       case 'USER_DISABLED':
         return 'Esta conta está desativada.';
       case 'WEAK_PASSWORD':
-        return 'A senha precisa de pelo menos 6 caracteres.';
+        return SENHA_FRACA;
       case 'AbortError':
       case 'TypeError':
         return 'Não deu para falar com o servidor. Confira a conexão e ' +
@@ -338,8 +384,9 @@
     var s2 = document.getElementById('senha2').value;
     erroSenha.hidden = true;
 
-    if (s1.length < 6) {
-      erroSenha.textContent = 'A senha precisa de pelo menos 6 caracteres.';
+    var problema = problemaDaSenha(s1);
+    if (problema) {
+      erroSenha.textContent = problema;
       erroSenha.hidden = false;
       return;
     }
