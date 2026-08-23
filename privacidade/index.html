@@ -12,7 +12,7 @@
 <header>
   <a class="brand" href="../"><span class="dot"></span>Parcelô</a>
   <h1>Política de Privacidade</h1>
-  <p class="updated">Última atualização: 20 de agosto de 2026.</p>
+  <p class="updated">Última atualização: 23 de agosto de 2026.</p>
 </header>
 
 <main>
@@ -67,7 +67,7 @@
 <h2>2.6. Verificação de integridade</h2>
 <p>Para impedir que programas falsos se passem pelo aplicativo e acessem dados, o Parcelô utiliza o Firebase App Check com o Play Integrity, do Google, que verifica se o aplicativo é legítimo e foi instalado pela Google Play. Essa verificação não identifica o usuário nem coleta dados pessoais.</p>
 <h2>2.7. Pagamento do Parcelô Pro</h2>
-<p>A cobrança é processada integralmente pela Google Play. Os dados do cartão ou do meio de pagamento são informados à Google, permanecem com a Google e não passam pelo Parcelô, que recebe apenas a confirmação de que a assinatura está ativa, para liberar os recursos pagos na conta correspondente.</p>
+<p>A cobrança é processada integralmente pela Google Play. Os dados do cartão ou do meio de pagamento são informados à Google, permanecem com a Google e não passam pelo Parcelô. A confirmação de que a assinatura está ativa chega ao aplicativo por meio da RevenueCat, que administra a assinatura e recebe apenas o identificador interno da conta, para que os recursos pagos sejam liberados na conta correspondente.</p>
 <h2>3. POR QUE ESSES DADOS SÃO TRATADOS</h2>
 <p>Cada dado tem finalidade e base legal definidas, como exige a LGPD:</p>
 <ul>
@@ -78,9 +78,10 @@
 </ul>
 <p>Os dados financeiros não são utilizados para nenhuma outra finalidade. Não há criação de perfil, pontuação de crédito, publicidade dirigida ou comercialização de informação.</p>
 <h2>4. COM QUEM OS DADOS SÃO COMPARTILHADOS</h2>
-<p>Com uma única empresa, exclusivamente na condição de operadora de infraestrutura:</p>
+<p>Apenas com operadoras de infraestrutura, exclusivamente nessa condição e apenas no que é necessário para o aplicativo funcionar:</p>
 <ul>
   <li>Google LLC, por meio do Firebase Authentication (contas e autenticação), do Cloud Firestore (armazenamento dos dados), do Firebase App Check com Play Integrity (verificação do aplicativo) e da Google Play, quando há pagamento.</li>
+  <li>RevenueCat, Inc., que administra e valida a assinatura do Parcelô Pro. Recebe apenas o identificador interno da conta — um código gerado pelo próprio aplicativo, sem e-mail, sem nome e sem nenhum dado financeiro lançado por você — e informa de volta se a assinatura está ativa.</li>
 </ul>
 <p>Não há qualquer outro compartilhamento. Não existem parceiros comerciais, redes de anúncio, corretoras de dados ou ferramentas de análise no Parcelô.</p>
 <p>Dados somente serão fornecidos a autoridades mediante ordem judicial ou requisição legal válida.</p>
