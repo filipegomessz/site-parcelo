@@ -1,0 +1,6 @@
+# Os modelos de e-mail em /emails/ nao sao paginas do site. Estao versionados
+# aqui porque sao a outra metade do fluxo que termina em /acao/: a pessoa recebe
+# um deles, clica, e cai naquela pagina. Fora do cliente de e-mail eles nao
+# funcionam nem fazem sentido, entao nao ha o que indexar.
+User-agent: *
+Disallow: /emails/
