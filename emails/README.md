@@ -14,6 +14,11 @@ Assuntos, em texto puro:
 - Verificação: `Confirme seu e-mail no Parcelô`
 - Senha: `Redefinir sua senha do Parcelô`
 
+⚠️ **Os dois têm o `ô` de Parcelô** (U+00F4). Em 03/09/2026 o assunto da verificação
+chegou como `Confirme seu e-mail no Parcelo`, sem o acento, na primeira aplicação
+feita pela Engenharia do Google — ao pedir mudança de assunto, escrever o caractere
+por extenso no pedido.
+
 ## Regras que não se quebram sem motivo
 
 **Só estilo em linha.** Nada de `<style>`, nada de media query. Quem cola este HTML
@@ -42,7 +47,31 @@ existindo: o `%LINK%` é obrigatório, e sem ele o modelo não salva.
 
 ## Estado
 
-🔴 **Não estão no ar.** O Google bloqueia a edição dos modelos no projeto `parcelo1`
-(`400 EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`), e há um pedido de escalonamento aberto no
-suporte do Firebase desde 28/08/2026. Enquanto não destravar, o que os usuários
-recebem é o modelo padrão do Firebase, com link em `parcelo1.firebaseapp.com`.
+🟡 **Os CORPOS estão no ar desde 03/09/2026; os ASSUNTOS não.** A Engenharia do
+Firebase aplicou os dois modelos a pedido do suporte, depois do escalonamento aberto
+em 28/08. Veio certo: o HTML dos dois, palavra por palavra, **e a URL acionável**, que
+agora nasce em `parceloapp.com.br/acao/` no lugar de
+`parcelo1.firebaseapp.com/__/auth/action`.
+
+**O que não veio, conferido por ele na caixa de entrada em 03/09:** os assuntos são
+os nossos, mas **os dois perderam o circunflexo de Parcelô**. É um defeito só, de
+transcrição.
+
+| | Pedido | No ar em 03/09 |
+| --- | --- | --- |
+| Verificação | `Confirme seu e-mail no Parcelô` | `Confirme seu e-mail no Parcelo` |
+| Senha | `Redefinir sua senha do Parcelô` | `Redefinir sua senha do Parcelo` |
+
+🔑 **O acento não se perdeu no caminho:** o assunto padrão que saía antes,
+`Redefinir a senha do app Parcelô`, chegava **com** o `ô` (o nome vem do console, por
+`%APP_NAME%`). O transporte aguenta não-ASCII; quem normalizou foi a transcrição do
+texto que enviamos.
+
+🔴 **O rodapé destes arquivos mudou depois disso e ainda NÃO está no ar.** Ele tirou o
+*"É só responder"* em 03/09, porque o remetente é `naoresponda@parceloapp.com.br` e
+mandar responder confunde — mesmo com o reply-to apontando para `contato@`. Está
+`Precisa falar com a gente? Envie um e-mail para contato@parceloapp.com.br.` nos dois.
+
+⚠️ **O console segue bloqueado para edição** (`400 EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`):
+mudar qualquer palavra daqui **exige pedir ao suporte do Firebase**. Estes arquivos são
+o que DEVE estar no ar; a tabela acima é a divergência conhecida.
