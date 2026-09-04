@@ -608,38 +608,53 @@
         trigger: secao,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.6
+        scrub: 0.4
       }
     });
+
+    /* Cada batida vale 1 unidade, e a troca inteira acontece no primeiro terço
+       dela: o mês passa DIRETO pro outro, e os dois terços restantes são
+       respiro pra ler o resultado. Antes a troca se arrastava pela batida toda
+       e a pessoa rolava no meio de um estado que não era nem um mês nem o
+       outro. Pedido dele em 04/09. */
+    var TROCA = 0.34;
 
     marcos.forEach(function (li, i) {
       if (i === 0) return;
       var t = i - 1;
 
       tl.addLabel("marco" + i, t)
-        .to(marcos[i - 1], { opacity: 0, y: -14, duration: 0.25 }, t)
-        .to(li, { opacity: 1, y: 0, duration: 0.35 }, t + 0.15)
-        .to(estado, { comprometido: valores[i], duration: 0.6, onUpdate: escrever }, t);
+        .to(marcos[i - 1], { opacity: 0, y: -12, duration: TROCA * 0.35 }, t)
+        .to(li, { opacity: 1, y: 0, duration: TROCA * 0.5 }, t + TROCA * 0.3)
+        .to(
+          estado,
+          { comprometido: valores[i], duration: TROCA, onUpdate: escrever },
+          t
+        );
 
       if (meses[i - 1] && meses[i]) {
-        tl.to(meses[i - 1], { opacity: 0, duration: 0.3 }, t)
-          .to(meses[i], { opacity: 1, duration: 0.4 }, t + 0.1);
+        tl.to(meses[i - 1], { opacity: 0, duration: TROCA * 0.3 }, t)
+          .to(meses[i], { opacity: 1, duration: TROCA * 0.45 }, t + TROCA * 0.25);
       }
 
-      if (preenchido) tl.to(preenchido, { scaleX: posicoes[i], duration: 0.6 }, t);
-      if (eixo) tl.to(eixo, { "--progresso": posicoes[i], duration: 0.6 }, t);
+      if (preenchido) tl.to(preenchido, { scaleX: posicoes[i], duration: TROCA }, t);
+      if (eixo) tl.to(eixo, { "--progresso": posicoes[i], duration: TROCA }, t);
 
+      // As parcelas daquela batida morrem em cascata curta, uma logo atrás da
+      // outra, pra dar a leitura de "caíram três de uma vez".
       parcelas
         .filter(function (p) {
           return parseInt(p.getAttribute("data-morre"), 10) === i;
         })
         .forEach(function (p, k) {
-          var quando = t + 0.15 + k * 0.08;
+          var quando = t + TROCA * 0.2 + k * 0.05;
           var risco = p.querySelector(".linha__risco");
           var valor = p.querySelector("em");
-          tl.to(p, { opacity: 0.35, duration: 0.3 }, quando);
-          if (risco) tl.to(risco, { scaleX: 1, duration: 0.35, ease: CURVA.saida }, quando);
-          if (valor) tl.to(valor, { color: "#00e884", duration: 0.3 }, quando);
+          tl.to(p, { opacity: 0.35, duration: TROCA * 0.5 }, quando);
+          if (risco) {
+            tl.to(risco, { scaleX: 1, duration: TROCA * 0.6, ease: CURVA.saida }, quando);
+          }
+          if (valor) tl.to(valor, { color: "#00e884", duration: TROCA * 0.5 }, quando);
         });
     });
 

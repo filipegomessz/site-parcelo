@@ -107,8 +107,8 @@ setTimeout(function () {
            copiando a gramática do app (saudação, marca d'água do mês vazando
            pela direita, rótulo em caixa alta sobre o número-herói, card de
            vidro com os três totais). Números coerentes com a linha do tempo
-           da seção 5: R$ 1.240 em setembro, 7 parcelas, o sofá acaba em
-           dezembro e devolve R$ 150.
+           da seção 5: R$ 1.240 em janeiro, 7 parcelas, e o bloco que morre em
+           junho devolve R$ 350 por mês. Mexeu lá, mexe aqui.
 
            PRA TROCAR PELA FOTO: substitua o <div class="tela"> inteiro por
            <img class="tela__foto" src="assets/img/meu-mes.png" alt="">.
@@ -122,7 +122,7 @@ setTimeout(function () {
                 <span>19:32</span>
                 <span class="tela__sinais"><i></i><i></i><i></i></span>
               </div>
-              <p class="tela__marca-dagua">SETEMBRO</p>
+              <p class="tela__marca-dagua">JANEIRO</p>
               <div class="tela__cabecalho">
                 <span class="tela__menu"><i></i><i></i><i></i></span>
                 <span class="tela__ola">Olá, você</span>
@@ -132,7 +132,7 @@ setTimeout(function () {
                 <span class="tela__moeda">R$</span><span class="tela__reais" data-contador="1240">1.240</span><span class="tela__centavos">,00</span>
               </p>
               <p class="tela__chips">
-                <span class="tela__chip tela__chip--menta">Libera R$ 150 em dezembro</span>
+                <span class="tela__chip tela__chip--menta">Libera R$ 350 em junho</span>
                 <span class="tela__chip">7 parcelas correndo</span>
               </p>
               <div class="tela__vidro">
@@ -144,7 +144,7 @@ setTimeout(function () {
               <ul class="tela__lista">
                 <li><span class="tela__nome">Notebook</span><span class="tela__meta">3 de 18</span><strong>R$ 310,00</strong></li>
                 <li><span class="tela__nome">Geladeira</span><span class="tela__meta">2 de 10</span><strong>R$ 220,00</strong></li>
-                <li class="tela__lista--acabando"><span class="tela__nome">Sofá</span><span class="tela__meta">9 de 12, acaba em dezembro</span><strong>R$ 150,00</strong></li>
+                <li class="tela__lista--acabando"><span class="tela__nome">Sofá</span><span class="tela__meta">7 de 12, acaba em junho</span><strong>R$ 150,00</strong></li>
                 <li><span class="tela__nome">Celular</span><span class="tela__meta">6 de 12</span><strong>R$ 140,00</strong></li>
               </ul>
               <div class="tela__barra">
@@ -180,7 +180,6 @@ setTimeout(function () {
 <section class="secao secao--dor" id="dor" data-secao="dor">
   <div class="secao__interno dor__interno">
     <div class="dor__cabeca">
-      <p class="rotulo" data-revelar>O problema</p>
       <h2 class="titulo" data-revelar>Você já desistiu de um app de finanças antes.</h2>
       <p class="subcopy" data-revelar>Quase sempre por um destes dois motivos.</p>
     </div>
@@ -237,7 +236,6 @@ setTimeout(function () {
   <div class="secao__interno">
     <div class="como__grade">
       <div class="como__texto">
-        <p class="rotulo" data-revelar>Como funciona</p>
         <h2 class="titulo" data-revelar>Você cadastra uma vez. Ele cuida dos doze meses.</h2>
 
         <p class="subcopy" data-revelar>Comprou a geladeira em 10x? Cadastra a geladeira e diz em qual
@@ -301,39 +299,39 @@ setTimeout(function () {
   <div class="linha__palco">
     <div class="secao__interno linha__interno">
       <div class="linha__texto">
-        <p class="rotulo" data-revelar>A linha do tempo</p>
         <h2 class="titulo" data-revelar>Rola pra ver o ano acabar.</h2>
-        <p class="subcopy" data-revelar>Cada mês que passa mata uma parcela. O Parcelô mostra qual,
-        quando, e quanto volta pro seu bolso quando ela morre.</p>
+        <!-- A frase falava de "uma parcela por mês", que era verdade com 5
+             marcos de dois em dois meses. Com 3 marcos morrem três de uma vez,
+             e o texto passou a contradizer o que a cena mostra ao lado. -->
+        <p class="subcopy" data-revelar>Os meses passam e as parcelas vão morrendo. O Parcelô
+        mostra quais, quando, e quanto volta pro seu bolso.</p>
       </div>
 
+      <!-- TRÊS marcos, decisão dele em 04/09: com cinco a rolagem ficava longa
+           demais e o salto entre eles era pequeno. Janeiro, junho e dezembro
+           cobrem o ano inteiro e cada troca derruba um bloco grande de uma vez,
+           que é o que faz o resultado saltar aos olhos. -->
       <ol class="marcos" data-marcos>
-        <li data-mes="Setembro"  data-comprometido="1240" data-correndo="7">
+        <li data-mes="Janeiro"  data-comprometido="1240" data-correndo="7">
           <strong>R$ 1.240</strong> comprometido, com 7 parcelas correndo.
         </li>
-        <li data-mes="Dezembro"  data-comprometido="1090" data-correndo="6" data-libera="150">
-          A última do sofá cai aqui. Você libera <strong>R$ 150 por mês</strong>.
+        <li data-mes="Junho"    data-comprometido="890"  data-correndo="4" data-libera="350">
+          Três parcelas morreram no caminho. Você libera
+          <strong>R$ 350 por mês</strong>.
         </li>
-        <li data-mes="Fevereiro" data-comprometido="890"  data-correndo="4">
-          <strong>R$ 890</strong> comprometido, com 4 parcelas correndo.
-        </li>
-        <li data-mes="Maio"      data-comprometido="530"  data-correndo="2" data-libera="220">
-          Acabou a da geladeira. Mais <strong>R$ 220 por mês</strong> de volta.
-        </li>
-        <li data-mes="Agosto"    data-comprometido="310"  data-correndo="1">
-          <strong>R$ 310</strong> comprometido, com 1 parcela correndo.
+        <li data-mes="Dezembro" data-comprometido="310"  data-correndo="1" data-libera="930">
+          Sobrou uma. Voltaram <strong>R$ 930 por mês</strong> pro seu bolso.
         </li>
       </ol>
 
       <!-- A CENA (só visual). As sete parcelas fecham a aritmética dos marcos:
-           setembro 1.240 = 310 + 220 + 220 + 150 + 140 + 120 + 80. data-morre é
-           a batida em que cada uma morre (1 = dezembro, 2 = fevereiro,
-           3 = maio, 4 = agosto): sofá em dezembro (-150 = 1.090); tênis e fone
-           até fevereiro (-200 = 890); geladeira e celular até maio (-360 = 530);
-           viagem até agosto (-220 = 310, só o notebook segue). --fatia é o
+           janeiro 1.240 = 310 + 220 + 220 + 150 + 140 + 120 + 80. data-morre é
+           a batida em que cada uma morre. Em JUNHO (1) caem sofá, tênis e fone,
+           que somam 350, e sobram 890. Em DEZEMBRO (2) caem viagem, geladeira e
+           celular, que somam 580, e sobra o notebook com 310. --fatia é o
            tamanho da barra em relação à maior. -->
       <div class="linha__cena" aria-hidden="true">
-        <p class="linha__mes"><span>Setembro</span><span>Dezembro</span><span>Fevereiro</span><span>Maio</span><span>Agosto</span></p>
+        <p class="linha__mes"><span>Janeiro</span><span>Junho</span><span>Dezembro</span></p>
 
         <div class="linha__numeros">
           <div class="linha__numero">
@@ -348,31 +346,32 @@ setTimeout(function () {
 
         <ul class="linha__parcelas">
           <li style="--fatia:1"><span class="linha__nome">Notebook</span><span class="linha__barra"></span><em>R$ 310</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.71" data-morre="4"><span class="linha__nome">Viagem</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.71" data-morre="3"><span class="linha__nome">Geladeira</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.71" data-morre="2"><span class="linha__nome">Viagem</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.71" data-morre="2"><span class="linha__nome">Geladeira</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
           <li style="--fatia:0.48" data-morre="1"><span class="linha__nome">Sofá</span><span class="linha__barra"></span><em>R$ 150</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.45" data-morre="3"><span class="linha__nome">Celular</span><span class="linha__barra"></span><em>R$ 140</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.39" data-morre="2"><span class="linha__nome">Tênis</span><span class="linha__barra"></span><em>R$ 120</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.26" data-morre="2"><span class="linha__nome">Fone</span><span class="linha__barra"></span><em>R$ 80</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.45" data-morre="2"><span class="linha__nome">Celular</span><span class="linha__barra"></span><em>R$ 140</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.39" data-morre="1"><span class="linha__nome">Tênis</span><span class="linha__barra"></span><em>R$ 120</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.26" data-morre="1"><span class="linha__nome">Fone</span><span class="linha__barra"></span><em>R$ 80</em><span class="linha__risco"></span></li>
         </ul>
 
-        <!-- Doze meses de setembro a agosto; --i é a posição (0 a 11) e
-             data-marco liga o tique ao marco de mesmo índice. -->
+        <!-- O ano inteiro, de janeiro a dezembro; --i é a posição (0 a 11) e
+             data-marco liga o tique ao marco de mesmo índice. Os três marcos
+             caem no primeiro, no do meio e no último mês. -->
         <div class="linha__trilha">
           <div class="linha__eixo">
             <span class="linha__preenchido"></span>
-            <i style="--i:0" class="linha__tique--marco" data-marco="0">set</i>
-            <i style="--i:1">out</i>
-            <i style="--i:2">nov</i>
-            <i style="--i:3" class="linha__tique--marco" data-marco="1">dez</i>
-            <i style="--i:4">jan</i>
-            <i style="--i:5" class="linha__tique--marco" data-marco="2">fev</i>
-            <i style="--i:6">mar</i>
-            <i style="--i:7">abr</i>
-            <i style="--i:8" class="linha__tique--marco" data-marco="3">mai</i>
-            <i style="--i:9">jun</i>
-            <i style="--i:10">jul</i>
-            <i style="--i:11" class="linha__tique--marco" data-marco="4">ago</i>
+            <i style="--i:0" class="linha__tique--marco" data-marco="0">jan</i>
+            <i style="--i:1">fev</i>
+            <i style="--i:2">mar</i>
+            <i style="--i:3">abr</i>
+            <i style="--i:4">mai</i>
+            <i style="--i:5" class="linha__tique--marco" data-marco="1">jun</i>
+            <i style="--i:6">jul</i>
+            <i style="--i:7">ago</i>
+            <i style="--i:8">set</i>
+            <i style="--i:9">out</i>
+            <i style="--i:10">nov</i>
+            <i style="--i:11" class="linha__tique--marco" data-marco="2">dez</i>
             <span class="linha__cabeca"></span>
           </div>
         </div>
@@ -403,7 +402,6 @@ setTimeout(function () {
       </span>
     </div>
 
-    <p class="rotulo" data-revelar>Privacidade</p>
     <h2 class="titulo titulo--afiado" data-revelar>Ele nunca vai pedir a senha do seu banco.</h2>
 
     <div class="privacidade__colunas">
@@ -432,7 +430,6 @@ setTimeout(function () {
      =================================================================== -->
 <section class="secao secao--breve" id="breve" data-secao="breve">
   <div class="secao__interno">
-    <p class="rotulo" data-revelar>Vem por aí</p>
     <h2 class="titulo" data-revelar>O que está em construção agora</h2>
     <p class="subcopy" data-revelar>Já estão sendo feitos e chegam antes do lançamento. Os três
     entram no Pro.</p>
@@ -476,7 +473,6 @@ setTimeout(function () {
      =================================================================== -->
 <section class="secao secao--preco" id="preco" data-secao="preco">
   <div class="secao__interno">
-    <p class="rotulo" data-revelar>Preço</p>
     <h2 class="titulo" data-revelar>R$ 4,99 por mês.</h2>
     <p class="subcopy" data-revelar>O primeiro mês é grátis. E tem uma versão gratuita que continua
     de graça, sem prazo pra acabar.</p>
@@ -539,7 +535,6 @@ setTimeout(function () {
      =================================================================== -->
 <section class="secao secao--perguntas" id="perguntas" data-secao="perguntas">
   <div class="secao__interno">
-    <p class="rotulo" data-revelar>Perguntas</p>
     <h2 class="titulo" data-revelar>O que as pessoas perguntam antes de baixar</h2>
 
     <!-- name="perguntas" em todos: abrir uma fecha a outra, nativo do navegador,

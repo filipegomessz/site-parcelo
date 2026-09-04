@@ -315,27 +315,11 @@ a {
   color: var(--feixe);
 }
 
-/* Rótulo da casa: caixa alta menta, com um traço curto na frente, um raio do
-   feixe apontando pro que vem. Sempre à esquerda. */
-.rotulo {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-size: var(--t-rotulo);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--menta);
-  margin-bottom: var(--e3);
-}
-
-.rotulo::before {
-  content: "";
-  width: 1.25rem;
-  height: 1px;
-  background: var(--menta);
-  flex: none;
-}
+/* Os rótulos em caixa alta menta acima de cada título saíram em 04/09, a
+   pedido dele: o título já diz o que a seção é, e eles só poluíam. O token
+   --t-rotulo continua em uso pelos rótulos DE DENTRO das cenas (o
+   "Comprometido este mês" da tela do app, o "Liberado" da linha do tempo),
+   que são outra coisa. */
 
 .nota {
   font-size: var(--t-nota);
@@ -1754,8 +1738,11 @@ a {
   align-content: center;
 }
 
+/* Com 3 marcos são 2 trocas. A conta: 100svh de palco parado mais o quanto se
+   rola por troca. Estava em 460svh pra 4 trocas e ele reclamou, com razão, que
+   rolava demais pra sair da seção. Agora cada troca custa menos de uma tela. */
 .js .linha--viva {
-  min-height: 460svh;
+  min-height: 270svh;
 }
 
 .js .linha--viva .linha__palco {
@@ -1871,8 +1858,10 @@ a {
   color: var(--apagado);
 }
 
+/* Maiores desde que sobraram só 3 marcos: menos batidas, mais peso em cada
+   número. É o que faz o salto de 1.240 pra 310 dar na vista. */
 .linha__numero strong {
-  font-size: clamp(2rem, 1.1rem + 3.4vw, 3.6rem);
+  font-size: clamp(2.4rem, 1.2rem + 4.4vw, 4.6rem);
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -2059,7 +2048,7 @@ a {
   }
 
   .linha__numero strong {
-    font-size: clamp(1.8rem, 1rem + 4vw, 2.4rem);
+    font-size: clamp(2rem, 1rem + 5vw, 2.8rem);
   }
 
   .js .linha--viva .marcos li {
