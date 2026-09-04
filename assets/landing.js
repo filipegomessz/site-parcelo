@@ -594,13 +594,31 @@
       gsap.set(meses[0], { opacity: 1 });
     }
 
+    /* Os dois números saem de um objeto só, e quem escreve no DOM é o TICKER,
+       não um callback.
+
+       Callback de tween e callback de timeline os dois falharam aqui, e pelo
+       mesmo motivo: ao fazer scrub o ScrollTrigger renderiza a timeline
+       suprimindo eventos, então `onUpdate` simplesmente não roda. O resto da
+       cena (mês, barras, bolinha) muda porque são propriedades que o GSAP
+       escreve direto, mas os números, que dependiam de código, ficavam uma
+       parada inteira atrás: a cena em junho e o valor ainda em janeiro.
+
+       O ticker roda sempre. Ele lê o valor que os tweens já deixaram no
+       objeto e escreve se mudou. A guarda do `ultimo` é o que torna isso
+       barato: com steps(1) o número muda três vezes na seção inteira, então
+       o DOM é tocado três vezes, não a cada quadro. */
     var estado = { comprometido: base };
+    var ultimo = null;
     function escrever() {
       var atual = Math.round(estado.comprometido);
+      if (atual === ultimo) return;
+      ultimo = atual;
       if (comprometidoEl) comprometidoEl.textContent = "R$ " + formatarMilhar(atual);
       if (liberadoEl) liberadoEl.textContent = "R$ " + formatarMilhar(base - atual);
     }
     escrever();
+    gsap.ticker.add(escrever);
 
     var tl = gsap.timeline({
       defaults: { ease: CURVA.entrada },
@@ -612,19 +630,31 @@
       }
     });
 
-    /* A TROCA É UM SALTO, não uma travessia. A fatura vence uma vez por mês e
-       a página só tem três paradas, então não existe estado entre janeiro e
-       junho: interpolar dava uma bolinha parada em março e um "liberado" de
-       R$ 27, que não é o valor de parcela nenhuma. Com `steps(1)` o mês, os
-       números e a bolinha ficam parados durante a janela SALTO e viram os do
-       próximo marco de uma vez só, no fim dela. Rolando pra cima, desfaz igual.
-       Pedido dele em 04/09.
+    /* O ROTEIRO, em cinco paradas de uma unidade cada, decidido por ele em
+       04/09 depois de ver a seção rodando:
 
-       Depois do salto as barras correm pro progresso novo. Elas podem se mover
-       porque são contínuas de verdade: mostram o quanto da parcela já foi paga
-       enquanto os meses passaram. */
-    var SALTO = 0.2;
-    var CORRIDA = 0.34;
+         0 a 1  janeiro parado. A primeira rolagem não conta: a pessoa chegou
+                agora e precisa ler o que está na tela antes de qualquer coisa
+                se mexer.
+         1 a 2  só as barras andam, metade do caminho até o próximo mês. O mês
+                NÃO muda aqui, e é isso que dá a sensação de tempo correndo
+                sem pular etapa.
+         2 a 3  a virada. O mês e a bolinha pulam, as barras correm o resto,
+                e as que chegam ao fim são riscadas e apagam no mesmo instante
+                em que completam. Só então o dinheiro troca de lado, do
+                comprometido pro liberado.
+         3 a 4  as barras que sobraram andam a outra metade.
+         4 a 5  a segunda virada, pela mesma regra.
+         5 a 5,5  respiro antes de soltar o palco.
+
+       O mês, os números e a bolinha usam `steps(1)`: a fatura vence uma vez
+       por mês e a página tem três paradas, então não existe estado entre
+       janeiro e junho. Interpolar dava bolinha parada em março e "R$ 27
+       liberado", que não é o valor de parcela nenhuma. As barras, essas sim,
+       se movem: elas mostram o quanto já foi pago, que é contínuo de verdade. */
+    var RESPIRO = 1;
+    var CORRIDA = 0.42;
+    var PULO = { duration: 0.12, ease: "steps(1)" };
 
     // O progresso de cada parcela em cada parada: --fatia é janeiro,
     // data-progresso traz junho e dezembro.
@@ -639,80 +669,89 @@
 
     marcos.forEach(function (li, i) {
       if (i === 0) return;
-      var t = i - 1;
 
-      tl.addLabel("marco" + i, t)
-        .to(
-          estado,
-          {
-            comprometido: valores[i],
-            duration: SALTO,
-            ease: "steps(1)",
-            onUpdate: escrever
-          },
-          t
-        )
-        .to(marcos[i - 1], { opacity: 0, duration: SALTO, ease: "steps(1)" }, t)
-        .to(li, { opacity: 1, duration: SALTO, ease: "steps(1)" }, t);
+      var tMeia = RESPIRO + (i - 1) * 2;
+      var tVirada = tMeia + 1;
+      var tChegada = tVirada + CORRIDA;
 
+      tl.addLabel("meia" + i, tMeia).addLabel("virada" + i, tVirada);
+
+      // ── A rolagem do meio: só as barras, e nada mais. ──────────────────
+      parcelas.forEach(function (p, k) {
+        var de = progressos[k][i - 1];
+        var ate = progressos[k][i];
+        if (typeof de !== "number" || typeof ate !== "number" || de === ate) return;
+        tl.to(
+          p,
+          { "--fatia": (de + ate) / 2, duration: 0.55, ease: CURVA.saida },
+          tMeia
+        );
+      });
+
+      // ── A virada. Primeiro o tempo avança. ────────────────────────────
       if (meses[i - 1]) {
-        tl.to(meses[i - 1], { opacity: 0, duration: SALTO, ease: "steps(1)" }, t);
+        tl.to(meses[i - 1], { opacity: 0, duration: PULO.duration, ease: PULO.ease }, tVirada);
       }
       if (meses[i]) {
-        tl.to(meses[i], { opacity: 1, duration: SALTO, ease: "steps(1)" }, t);
-      }
-
-      if (preenchido) {
-        tl.to(
-          preenchido,
-          { scaleX: posicoes[i], duration: SALTO, ease: "steps(1)" },
-          t
-        );
+        tl.to(meses[i], { opacity: 1, duration: PULO.duration, ease: PULO.ease }, tVirada);
       }
       if (eixo) {
         tl.to(
           eixo,
-          { "--progresso": posicoes[i], duration: SALTO, ease: "steps(1)" },
-          t
+          { "--progresso": posicoes[i], duration: PULO.duration, ease: PULO.ease },
+          tVirada
+        );
+      }
+      if (preenchido) {
+        tl.to(
+          preenchido,
+          { scaleX: posicoes[i], duration: PULO.duration, ease: PULO.ease },
+          tVirada
         );
       }
 
-      // Todas as barras andam, não só as que acabaram: os meses passaram pra
-      // todo mundo.
+      // As barras correm a outra metade.
       parcelas.forEach(function (p, k) {
-        var alvo = progressos[k][i];
-        if (typeof alvo !== "number") return;
-        tl.to(
-          p,
-          { "--fatia": alvo, duration: CORRIDA, ease: CURVA.saida },
-          t + SALTO
-        );
+        var de = progressos[k][i - 1];
+        var ate = progressos[k][i];
+        if (typeof de !== "number" || typeof ate !== "number" || de === ate) return;
+        tl.to(p, { "--fatia": ate, duration: CORRIDA, ease: CURVA.saida }, tVirada);
       });
 
-      // As que chegaram ao fim: o risco cinza corre por cima e o item esmaece.
-      // Nada de pintar o valor de menta, que é a cor do que está vivo. O ganho
-      // aparece do outro lado, no número liberado.
+      // No instante em que chegam ao fim, as que acabaram são riscadas e
+      // apagam. Sem intervalo entre uma coisa e outra: completar e sair de
+      // cena é o mesmo gesto, senão fica aquele estado esquisito de barra
+      // cheia e riscada ainda em verde.
       parcelas
         .filter(function (p) {
           return parseInt(p.getAttribute("data-morre"), 10) === i;
         })
         .forEach(function (p, k) {
-          var quando = t + SALTO + CORRIDA * 0.55 + k * 0.05;
+          var quando = tChegada + k * 0.04;
           var risco = p.querySelector(".linha__risco");
+          // MESMA duração e MESMA curva nos dois. Com curvas diferentes o
+          // traço disparava na frente e a parcela aparecia riscada e ainda
+          // acesa, que foi exatamente o que ele reprovou.
           if (risco) {
-            tl.to(
-              risco,
-              { scaleX: 1, duration: CORRIDA * 0.5, ease: CURVA.saida },
-              quando
-            );
+            tl.to(risco, { scaleX: 1, duration: 0.18, ease: CURVA.saida }, quando);
           }
-          tl.to(p, { opacity: 0.32, duration: CORRIDA * 0.5 }, quando + 0.04);
+          tl.to(p, { "--morta": 1, duration: 0.18, ease: CURVA.saida }, quando);
         });
+
+      // Só então o dinheiro troca de lado, junto com o texto da esquerda.
+      tl.to(
+        estado,
+        { comprometido: valores[i], duration: PULO.duration, ease: PULO.ease },
+        tChegada
+      )
+        .to(marcos[i - 1], { opacity: 0, duration: PULO.duration, ease: PULO.ease }, tChegada)
+        .to(li, { opacity: 1, duration: PULO.duration, ease: PULO.ease }, tChegada);
     });
 
-    // Respiro no fim: o último marco fica parado um pouco antes de a seção
-    // soltar o palco.
-    tl.to({}, { duration: 0.5 });
+    // Respiro no fim, na posição exata: o último marco fica parado um pouco
+    // antes de a seção soltar o palco. Posicionado na mão pra a timeline ter
+    // sempre o mesmo comprimento (5,5), que é o que o CSS da altura assume.
+    tl.to({}, { duration: 0.5 }, RESPIRO + (marcos.length - 1) * 2);
   }
 
   /* =========================================================================

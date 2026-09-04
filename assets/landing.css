@@ -1738,11 +1738,14 @@ a {
   align-content: center;
 }
 
-/* Com 3 marcos são 2 trocas. A conta: 100svh de palco parado mais o quanto se
-   rola por troca. Estava em 460svh pra 4 trocas e ele reclamou, com razão, que
-   rolava demais pra sair da seção. Agora cada troca custa menos de uma tela. */
+/* A seção tem 5 paradas e meia, e cada uma custa cerca de meia tela de
+   rolagem: janeiro parado pra ler, as barras andando metade do caminho, a
+   virada pra junho, as barras de novo, a virada pra dezembro, e um respiro.
+   A conta é 100svh de palco mais 5,5 paradas. Cresceu em relação aos 270svh
+   de antes porque ele pediu as paradas intermediárias, mas nenhuma delas é
+   arrasto: em toda parada alguma coisa acontece ou é dada pra ler. */
 .js .linha--viva {
-  min-height: 270svh;
+  min-height: 380svh;
 }
 
 .js .linha--viva .linha__palco {
@@ -1859,7 +1862,12 @@ a {
 }
 
 /* Maiores desde que sobraram só 3 marcos: menos batidas, mais peso em cada
-   número. É o que faz o salto de 1.240 pra 310 dar na vista. */
+   número. É o que faz o salto de 2.000 pra zero dar na vista.
+
+   O min-width reserva o espaço do maior valor ("R$ 2.000", 8 caracteres) desde
+   o começo. Sem ele, "R$ 0" virando "R$ 1.450" empurrava a coluna e o gráfico
+   inteiro dava um solavanco lateral no meio da virada. Com tabular-nums todo
+   dígito tem a mesma largura, então 8ch é medida exata, não chute. */
 .linha__numero strong {
   font-size: clamp(2.4rem, 1.2rem + 4.4vw, 4.6rem);
   font-weight: 600;
@@ -1867,6 +1875,7 @@ a {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  min-width: 8ch;
 }
 
 .linha__numero--ganho .linha__rotulo {
@@ -1882,7 +1891,13 @@ a {
   gap: 0.55rem;
 }
 
+/* --morta vai de 0 a 1 quando a parcela chega ao fim, e faz as duas coisas de
+   uma vez: tira a cor e apaga. Uma variável só, animada num lugar só, em vez
+   de mexer em opacidade aqui e em cor da barra ali fora de sincronia. O
+   saturate zera o verde, que é o "aspecto cinza" que ele pediu: verde é a cor
+   do que ainda está correndo. */
 .linha__parcelas li {
+  --morta: 0;
   position: relative;
   display: grid;
   grid-template-columns: 6.5rem minmax(0, 1fr) auto;
@@ -1890,6 +1905,8 @@ a {
   gap: 0.75rem;
   font-size: 0.85rem;
   color: var(--apagado);
+  opacity: calc(1 - var(--morta) * 0.62);
+  filter: saturate(calc(1 - var(--morta)));
 }
 
 .linha__nome {
