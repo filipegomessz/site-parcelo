@@ -1908,13 +1908,17 @@ a {
   overflow: hidden;
 }
 
+/* A barra é PROGRESSO: quanto da parcela já foi paga. Cresce por transform e
+   não por width, porque o GSAP anima --fatia quadro a quadro e mexer em width
+   obrigaria o navegador a refazer layout sete vezes por quadro. */
 .linha__barra::before {
   content: "";
   position: absolute;
   inset: 0;
-  width: calc(var(--fatia, 1) * 100%);
   border-radius: 3px;
   background: linear-gradient(90deg, rgba(0, 200, 111, 0.85), rgba(0, 232, 132, 0.5));
+  transform: scaleX(var(--fatia, 1));
+  transform-origin: left;
 }
 
 .linha__parcelas em {
@@ -1924,13 +1928,16 @@ a {
   color: var(--apagado);
 }
 
+/* O risco é CINZA, não menta: menta é a cor do que está vivo e do que é ganho.
+   Uma parcela encerrada saiu de cena, e o traço em cima dela precisa dizer
+   isso. O ganho aparece do outro lado, no número liberado. */
 .linha__risco {
   position: absolute;
   left: 0;
   right: 0;
   top: 50%;
   height: 1px;
-  background: var(--feixe);
+  background: var(--apagado);
   transform: scaleX(0);
   transform-origin: left;
   pointer-events: none;

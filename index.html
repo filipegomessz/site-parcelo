@@ -107,8 +107,10 @@ setTimeout(function () {
            copiando a gramática do app (saudação, marca d'água do mês vazando
            pela direita, rótulo em caixa alta sobre o número-herói, card de
            vidro com os três totais). Números coerentes com a linha do tempo
-           da seção 5: R$ 1.240 em janeiro, 7 parcelas, e o bloco que morre em
-           junho devolve R$ 350 por mês. Mexeu lá, mexe aqui.
+           da seção 5: as 7 parcelas somam R$ 2.000 em janeiro, e o bloco que
+           some em junho devolve R$ 1.450 por mês. Com assinaturas e contas o
+           mês fecha em 2.220. Mexeu lá, mexe aqui: são as mesmas parcelas,
+           com os mesmos valores e na mesma ordem de término.
 
            PRA TROCAR PELA FOTO: substitua o <div class="tela"> inteiro por
            <img class="tela__foto" src="assets/img/meu-mes.png" alt="">.
@@ -129,23 +131,23 @@ setTimeout(function () {
               </div>
               <p class="tela__rotulo">Comprometido este mês</p>
               <p class="tela__numero">
-                <span class="tela__moeda">R$</span><span class="tela__reais" data-contador="1240">1.240</span><span class="tela__centavos">,00</span>
+                <span class="tela__moeda">R$</span><span class="tela__reais" data-contador="2220">2.220</span><span class="tela__centavos">,00</span>
               </p>
               <p class="tela__chips">
-                <span class="tela__chip tela__chip--menta">Libera R$ 350 em junho</span>
+                <span class="tela__chip tela__chip--menta">Libera R$ 1.450 em junho</span>
                 <span class="tela__chip">7 parcelas correndo</span>
               </p>
               <div class="tela__vidro">
-                <div><span class="tela__vidro-rotulo">Parcelas</span><strong>R$ 1.020,00</strong></div>
+                <div><span class="tela__vidro-rotulo">Parcelas</span><strong>R$ 2.000,00</strong></div>
                 <div><span class="tela__vidro-rotulo">Assinaturas</span><strong>R$ 129,80</strong></div>
                 <div><span class="tela__vidro-rotulo">Contas</span><strong>R$ 90,20</strong></div>
               </div>
               <p class="tela__rotulo tela__rotulo--lista">Parcelas do mês</p>
               <ul class="tela__lista">
-                <li><span class="tela__nome">Notebook</span><span class="tela__meta">3 de 18</span><strong>R$ 310,00</strong></li>
-                <li><span class="tela__nome">Geladeira</span><span class="tela__meta">2 de 10</span><strong>R$ 220,00</strong></li>
-                <li class="tela__lista--acabando"><span class="tela__nome">Sofá</span><span class="tela__meta">7 de 12, acaba em junho</span><strong>R$ 150,00</strong></li>
-                <li><span class="tela__nome">Celular</span><span class="tela__meta">6 de 12</span><strong>R$ 140,00</strong></li>
+                <li class="tela__lista--acabando"><span class="tela__nome">Notebook</span><span class="tela__meta">16 de 20, acaba em junho</span><strong>R$ 300,00</strong></li>
+                <li><span class="tela__nome">Viagem</span><span class="tela__meta">8 de 12</span><strong>R$ 550,00</strong></li>
+                <li><span class="tela__nome">Geladeira</span><span class="tela__meta">10 de 18</span><strong>R$ 600,00</strong></li>
+                <li><span class="tela__nome">Sofá</span><span class="tela__meta">4 de 10</span><strong>R$ 170,00</strong></li>
               </ul>
               <div class="tela__barra">
                 <span class="tela__barra--ativa">Mês</span>
@@ -312,24 +314,39 @@ setTimeout(function () {
            cobrem o ano inteiro e cada troca derruba um bloco grande de uma vez,
            que é o que faz o resultado saltar aos olhos. -->
       <ol class="marcos" data-marcos>
-        <li data-mes="Janeiro"  data-comprometido="1240" data-correndo="7">
-          <strong>R$ 1.240</strong> comprometido, com 7 parcelas correndo.
+        <li data-mes="Janeiro"  data-comprometido="2000" data-correndo="7">
+          <strong>R$ 2.000</strong> comprometido, com 7 parcelas correndo.
         </li>
-        <li data-mes="Junho"    data-comprometido="890"  data-correndo="4" data-libera="350">
-          Três parcelas morreram no caminho. Você libera
-          <strong>R$ 350 por mês</strong>.
+        <li data-mes="Junho"    data-comprometido="550"  data-correndo="4" data-libera="1450">
+          Três acabaram de uma vez. Você libera
+          <strong>R$ 1.450 por mês</strong>.
         </li>
-        <li data-mes="Dezembro" data-comprometido="310"  data-correndo="1" data-libera="930">
-          Sobrou uma. Voltaram <strong>R$ 930 por mês</strong> pro seu bolso.
+        <li data-mes="Dezembro" data-comprometido="0"    data-correndo="0" data-libera="2000">
+          Zero comprometido. Os <strong>R$ 2.000 por mês</strong> voltaram pro
+          seu bolso.
         </li>
       </ol>
 
-      <!-- A CENA (só visual). As sete parcelas fecham a aritmética dos marcos:
-           janeiro 1.240 = 310 + 220 + 220 + 150 + 140 + 120 + 80. data-morre é
-           a batida em que cada uma morre. Em JUNHO (1) caem sofá, tênis e fone,
-           que somam 350, e sobram 890. Em DEZEMBRO (2) caem viagem, geladeira e
-           celular, que somam 580, e sobra o notebook com 310. --fatia é o
-           tamanho da barra em relação à maior. -->
+      <!-- A CENA (só visual).
+
+           A BARRA É PROGRESSO, não valor: mostra o quanto da parcela já foi
+           paga. Por isso a lista está em ORDEM DE TÉRMINO, a mais perto de
+           acabar em cima, e a barra do notebook chega quase no fim enquanto a
+           do fone mal saiu do lugar.
+
+           O site mostra o ANO da pessoa, em três paradas. Na vida real o
+           notebook acabaria por volta de fevereiro e a viagem um pouco depois,
+           mas as duas só somem em JUNHO, que é a parada seguinte. É
+           simplificação assumida, decidida por ele em 04/09.
+
+           A ARITMÉTICA FECHA: cada parcela que some tira o próprio valor do
+           comprometido e põe o mesmo valor no liberado.
+             janeiro   2.000 = 300+550+600+170+320+30+30, 7 correndo
+             junho     saem notebook, viagem e geladeira (1.450), sobram 550
+             dezembro  saem sofá, celular, tênis e fone (550), sobra zero
+
+           --fatia é o progresso em JANEIRO; data-progresso traz o de junho e o
+           de dezembro, nessa ordem; data-morre é a parada em que ela some. -->
       <div class="linha__cena" aria-hidden="true">
         <p class="linha__mes"><span>Janeiro</span><span>Junho</span><span>Dezembro</span></p>
 
@@ -345,13 +362,13 @@ setTimeout(function () {
         </div>
 
         <ul class="linha__parcelas">
-          <li style="--fatia:1"><span class="linha__nome">Notebook</span><span class="linha__barra"></span><em>R$ 310</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.71" data-morre="2"><span class="linha__nome">Viagem</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.71" data-morre="2"><span class="linha__nome">Geladeira</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.48" data-morre="1"><span class="linha__nome">Sofá</span><span class="linha__barra"></span><em>R$ 150</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.45" data-morre="2"><span class="linha__nome">Celular</span><span class="linha__barra"></span><em>R$ 140</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.39" data-morre="1"><span class="linha__nome">Tênis</span><span class="linha__barra"></span><em>R$ 120</em><span class="linha__risco"></span></li>
-          <li style="--fatia:0.26" data-morre="1"><span class="linha__nome">Fone</span><span class="linha__barra"></span><em>R$ 80</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.80" data-progresso="1,1"       data-morre="1"><span class="linha__nome">Notebook</span><span class="linha__barra"></span><em>R$ 300</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.68" data-progresso="1,1"       data-morre="1"><span class="linha__nome">Viagem</span><span class="linha__barra"></span><em>R$ 550</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.56" data-progresso="1,1"       data-morre="1"><span class="linha__nome">Geladeira</span><span class="linha__barra"></span><em>R$ 600</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.40" data-progresso="0.72,1"    data-morre="2"><span class="linha__nome">Sofá</span><span class="linha__barra"></span><em>R$ 170</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.30" data-progresso="0.64,1"    data-morre="2"><span class="linha__nome">Celular</span><span class="linha__barra"></span><em>R$ 320</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.20" data-progresso="0.56,1"    data-morre="2"><span class="linha__nome">Tênis</span><span class="linha__barra"></span><em>R$ 30</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.10" data-progresso="0.48,1"    data-morre="2"><span class="linha__nome">Fone</span><span class="linha__barra"></span><em>R$ 30</em><span class="linha__risco"></span></li>
         </ul>
 
         <!-- O ano inteiro, de janeiro a dezembro; --i é a posição (0 a 11) e

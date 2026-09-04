@@ -612,49 +612,101 @@
       }
     });
 
-    /* Cada batida vale 1 unidade, e a troca inteira acontece no primeiro terço
-       dela: o mês passa DIRETO pro outro, e os dois terços restantes são
-       respiro pra ler o resultado. Antes a troca se arrastava pela batida toda
-       e a pessoa rolava no meio de um estado que não era nem um mês nem o
-       outro. Pedido dele em 04/09. */
-    var TROCA = 0.34;
+    /* A TROCA É UM SALTO, não uma travessia. A fatura vence uma vez por mês e
+       a página só tem três paradas, então não existe estado entre janeiro e
+       junho: interpolar dava uma bolinha parada em março e um "liberado" de
+       R$ 27, que não é o valor de parcela nenhuma. Com `steps(1)` o mês, os
+       números e a bolinha ficam parados durante a janela SALTO e viram os do
+       próximo marco de uma vez só, no fim dela. Rolando pra cima, desfaz igual.
+       Pedido dele em 04/09.
+
+       Depois do salto as barras correm pro progresso novo. Elas podem se mover
+       porque são contínuas de verdade: mostram o quanto da parcela já foi paga
+       enquanto os meses passaram. */
+    var SALTO = 0.2;
+    var CORRIDA = 0.34;
+
+    // O progresso de cada parcela em cada parada: --fatia é janeiro,
+    // data-progresso traz junho e dezembro.
+    var progressos = parcelas.map(function (p) {
+      var lista = [parseFloat(p.style.getPropertyValue("--fatia")) || 0];
+      (p.getAttribute("data-progresso") || "").split(",").forEach(function (v) {
+        var n = parseFloat(v);
+        if (!isNaN(n)) lista.push(n);
+      });
+      return lista;
+    });
 
     marcos.forEach(function (li, i) {
       if (i === 0) return;
       var t = i - 1;
 
       tl.addLabel("marco" + i, t)
-        .to(marcos[i - 1], { opacity: 0, y: -12, duration: TROCA * 0.35 }, t)
-        .to(li, { opacity: 1, y: 0, duration: TROCA * 0.5 }, t + TROCA * 0.3)
         .to(
           estado,
-          { comprometido: valores[i], duration: TROCA, onUpdate: escrever },
+          {
+            comprometido: valores[i],
+            duration: SALTO,
+            ease: "steps(1)",
+            onUpdate: escrever
+          },
           t
-        );
+        )
+        .to(marcos[i - 1], { opacity: 0, duration: SALTO, ease: "steps(1)" }, t)
+        .to(li, { opacity: 1, duration: SALTO, ease: "steps(1)" }, t);
 
-      if (meses[i - 1] && meses[i]) {
-        tl.to(meses[i - 1], { opacity: 0, duration: TROCA * 0.3 }, t)
-          .to(meses[i], { opacity: 1, duration: TROCA * 0.45 }, t + TROCA * 0.25);
+      if (meses[i - 1]) {
+        tl.to(meses[i - 1], { opacity: 0, duration: SALTO, ease: "steps(1)" }, t);
+      }
+      if (meses[i]) {
+        tl.to(meses[i], { opacity: 1, duration: SALTO, ease: "steps(1)" }, t);
       }
 
-      if (preenchido) tl.to(preenchido, { scaleX: posicoes[i], duration: TROCA }, t);
-      if (eixo) tl.to(eixo, { "--progresso": posicoes[i], duration: TROCA }, t);
+      if (preenchido) {
+        tl.to(
+          preenchido,
+          { scaleX: posicoes[i], duration: SALTO, ease: "steps(1)" },
+          t
+        );
+      }
+      if (eixo) {
+        tl.to(
+          eixo,
+          { "--progresso": posicoes[i], duration: SALTO, ease: "steps(1)" },
+          t
+        );
+      }
 
-      // As parcelas daquela batida morrem em cascata curta, uma logo atrás da
-      // outra, pra dar a leitura de "caíram três de uma vez".
+      // Todas as barras andam, não só as que acabaram: os meses passaram pra
+      // todo mundo.
+      parcelas.forEach(function (p, k) {
+        var alvo = progressos[k][i];
+        if (typeof alvo !== "number") return;
+        tl.to(
+          p,
+          { "--fatia": alvo, duration: CORRIDA, ease: CURVA.saida },
+          t + SALTO
+        );
+      });
+
+      // As que chegaram ao fim: o risco cinza corre por cima e o item esmaece.
+      // Nada de pintar o valor de menta, que é a cor do que está vivo. O ganho
+      // aparece do outro lado, no número liberado.
       parcelas
         .filter(function (p) {
           return parseInt(p.getAttribute("data-morre"), 10) === i;
         })
         .forEach(function (p, k) {
-          var quando = t + TROCA * 0.2 + k * 0.05;
+          var quando = t + SALTO + CORRIDA * 0.55 + k * 0.05;
           var risco = p.querySelector(".linha__risco");
-          var valor = p.querySelector("em");
-          tl.to(p, { opacity: 0.35, duration: TROCA * 0.5 }, quando);
           if (risco) {
-            tl.to(risco, { scaleX: 1, duration: TROCA * 0.6, ease: CURVA.saida }, quando);
+            tl.to(
+              risco,
+              { scaleX: 1, duration: CORRIDA * 0.5, ease: CURVA.saida },
+              quando
+            );
           }
-          if (valor) tl.to(valor, { color: "#00e884", duration: TROCA * 0.5 }, quando);
+          tl.to(p, { opacity: 0.32, duration: CORRIDA * 0.5 }, quando + 0.04);
         });
     });
 
