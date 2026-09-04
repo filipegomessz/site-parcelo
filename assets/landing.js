@@ -559,6 +559,7 @@
      ---------------------------------------------------------------------- */
   function linhaDoTempo() {
     var gsap = window.gsap;
+    var ST = window.ScrollTrigger;
     var secao = document.querySelector(".secao--linha");
     if (!secao) return;
 
@@ -620,15 +621,18 @@
     escrever();
     gsap.ticker.add(escrever);
 
-    var tl = gsap.timeline({
-      defaults: { ease: CURVA.entrada },
-      scrollTrigger: {
-        trigger: secao,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.4
-      }
-    });
+    /* A timeline NÃO é presa à rolagem. Ela fica parada, e a rolagem só diz
+       PARA QUAL PARADA ir; a viagem entre duas paradas acontece no tempo dela.
+
+       Isso foi decisão dele em 04/09, e veio de um teste: numa bancada onde
+       cada fase tocava sozinha, com o mesmo desenho que está aqui, ele disse
+       que era exatamente o que queria. O que estragava era o `scrub`, que
+       amarra cada quadro à posição do dedo: a animação passava a andar no
+       ritmo do gesto, acelerando, parando e arrastando junto com ele. Bonita
+       no papel, irregular na tela.
+
+       Agora o gesto é um gatilho, não um manípulo. */
+    var tl = gsap.timeline({ paused: true, defaults: { ease: CURVA.entrada } });
 
     /* O ROTEIRO, decidido por ele em 04/09 e afinado depois de rolar a seção:
 
@@ -672,6 +676,9 @@
       return lista;
     });
 
+    // Onde a cena descansa. O playhead viaja de uma parada à outra e para.
+    var paradas = [0];
+
     marcos.forEach(function (li, i) {
       if (i === 0) return;
 
@@ -679,6 +686,7 @@
       var tVirada = tMeia + 1;
       var tChegada = tVirada + CORRIDA;
 
+      paradas.push(tMeia + 0.55, tChegada);
       tl.addLabel("meia" + i, tMeia).addLabel("virada" + i, tVirada);
 
       // ── A rolagem do meio: só as barras, e nada mais. ──────────────────
@@ -792,10 +800,55 @@
       }
     });
 
-    // Respiro no fim, na posição exata: o último marco fica parado um pouco
-    // antes de a seção soltar o palco. Posicionado na mão pra a timeline ter
-    // sempre o mesmo comprimento (5,5), que é o que o CSS da altura assume.
-    tl.to({}, { duration: 0.5 }, RESPIRO + (marcos.length - 1) * 2);
+    /* ── Quem comanda: a rolagem escolhe a parada, o tempo faz a viagem ──
+       Uma faixa de rolagem por parada. Ao cruzar a faixa k, a cena viaja até
+       a parada k e para lá; voltando, desfaz na mesma medida. Como cada
+       viagem é um tween normal, ela sai sempre no ritmo desenhado, não no
+       ritmo do gesto. */
+    var atual = 0;
+    var viagem = null;
+
+    function irPara(k) {
+      k = Math.max(0, Math.min(k, paradas.length - 1));
+      if (k === atual) return;
+      atual = k;
+
+      var destino = paradas[k];
+      var distancia = Math.abs(destino - tl.time());
+      // Uma parada vale cerca de 0,55 na timeline. A duração acompanha a
+      // distância pra quem pula duas de uma vez não esperar o dobro, nem ver
+      // a cena teleportar.
+      var duracao = Math.min(0.55 + distancia * 0.5, 1.5);
+
+      // `tweenTo` é a API que move o playhead de uma timeline pausada.
+      // Animar a propriedade `time` com um gsap.to comum cria o tween mas não
+      // mexe na timeline: ela ficava parada no zero enquanto o tween corria.
+      if (viagem) viagem.kill();
+      viagem = tl.tweenTo(destino, {
+        duration: duracao,
+        ease: CURVA.entrada,
+        overwrite: true
+      });
+    }
+
+    paradas.forEach(function (quando, k) {
+      if (k === 0) return;
+      ST.create({
+        trigger: secao,
+        start: function () {
+          var faixa = secao.offsetHeight - window.innerHeight;
+          return "top top-=" + Math.round((faixa * k) / paradas.length);
+        },
+        onEnter: function () {
+          irPara(k);
+        },
+        onLeaveBack: function () {
+          irPara(k - 1);
+        }
+      });
+    });
+
+    tl.time(0);
   }
 
   /* =========================================================================
