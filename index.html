@@ -3,40 +3,414 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Parcelô — suas parcelas e contas, no controle</title>
-<meta name="description" content="Parcelô é um aplicativo de organização pessoal para acompanhar compras parceladas, assinaturas e contas do mês.">
-<link rel="stylesheet" href="assets/style.css">
+<title>Parcelô, suas parcelas e contas no controle</title>
+<meta name="description" content="O Parcelô soma o que você parcelou, o que assina e o que paga todo mês, e mostra isso antes de a fatura fechar. Grátis pra começar, R$ 4,99 por mês no Pro. Android.">
+<link rel="canonical" href="https://parceloapp.com.br/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://parceloapp.com.br/">
+<meta property="og:site_name" content="Parcelô">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Parcelô, suas parcelas e contas no controle">
+<meta property="og:description" content="Você cadastra uma vez. Ele cuida dos doze meses seguintes. Sem conectar no seu banco.">
+<!-- FALTA: assets/img/og.png (1200x630). Enquanto não existir, a tag fica fora de
+     propósito, porque og:image quebrado é pior que og:image nenhum. -->
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/landing.css">
 </head>
 <body>
-<div class="wrap">
-<header>
-  <a class="brand" href="./"><span class="dot"></span>Parcelô</a>
-  <h1>Suas parcelas e contas, no controle.</h1>
-  <p class="updated">Aplicativo de organização pessoal · Android</p>
+
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+<!-- ===================================================================
+     NAV. Pílula flutuante com o CTA sempre visível (a régua do Pierre).
+     O Fable decide como ela se comporta na rolagem.
+     =================================================================== -->
+<header class="nav" data-nav>
+  <a class="nav__marca" href="./" aria-label="Parcelô, página inicial">
+    <span class="nav__ponto" aria-hidden="true"></span>Parcelô
+  </a>
+  <nav class="nav__links" aria-label="Seções da página">
+    <a href="#como">Como funciona</a>
+    <a href="#preco">Preço</a>
+    <a href="#perguntas">Perguntas</a>
+  </nav>
+  <a class="botao botao--play nav__cta"
+     href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-nav">Baixar</a>
 </header>
 
-<main>
-<p>O Parcelô junta num lugar só o que você parcelou, o que assina e o que paga
-todo mês — e mostra quanto disso já está comprometido antes de a fatura
-chegar.</p>
+<!-- tabindex="-1" pra o "Pular para o conteúdo" mover o FOCO, e não só a tela.
+     Sem isto, quem navega por teclado pula visualmente e continua preso no menu.
+     Funciona assim mesmo sem JavaScript. -->
+<main id="conteudo" tabindex="-1">
 
-<p>Ele não se conecta ao seu banco, não lê sua fatura e não pede seus dados
-bancários. Tudo o que aparece ali foi você quem anotou.</p>
+<!-- ===================================================================
+     1. HERO
+     =================================================================== -->
+<section class="secao secao--hero" id="hero" data-secao="hero">
+  <div class="secao__interno">
 
-<ul class="links">
-  <li><a href="termos/">Termos de Uso</a></li>
-  <li><a href="privacidade/">Política de Privacidade</a></li>
-  <li><a href="excluir-conta/">Excluir sua conta</a></li>
-</ul>
+    <h1 class="titulo titulo--herói">Quanto da sua próxima fatura já está comprometido?</h1>
 
-<h2>Contato</h2>
-<p>Assuntos gerais: <a href="mailto:contato@parceloapp.com.br">contato@parceloapp.com.br</a><br>
-Privacidade e dados: <a href="mailto:privacidade@parceloapp.com.br">privacidade@parceloapp.com.br</a></p>
+    <p class="subcopy">O Parcelô soma o que você parcelou, o que assina e o que paga
+    todo mês, e mostra isso antes de a fatura fechar. Você cadastra uma vez. Ele cuida
+    dos doze meses seguintes.</p>
+
+    <div class="lojas">
+      <a class="botao botao--play"
+         href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-hero">
+        Baixar na Play Store
+      </a>
+
+      <!-- App Store TRAVADA. Não é link. Fable: isto precisa ser um estado
+           DESENHADO (vidro fosco, cadeado, o que você inventar), nunca um botão
+           cinza morto. Sem hover falso: se não clica, não reage ao mouse. -->
+      <span class="botao botao--apple botao--travado" aria-disabled="true">
+        App Store
+        <span class="botao__selo">Em breve</span>
+      </span>
+    </div>
+
+    <p class="nota">Grátis pra começar. R$ 4,99 por mês se quiser tudo.</p>
+
+    <!-- MOCKUP HÍBRIDO. A foto real entra em assets/img/ quando ele mandar.
+         Até lá, o Fable desenha a tela aqui dentro em HTML/CSS e deixa a troca
+         fácil. Tela desta posição: "Meu mês". -->
+    <figure class="aparelho" data-tela="meu-mes" aria-hidden="true">
+      <div class="aparelho__vidro"><!-- tela --></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ===================================================================
+     2. FAIXA DE CONFIANÇA. Quatro itens de propósito, não três.
+     =================================================================== -->
+<section class="secao secao--confianca" id="confianca" data-secao="confianca">
+  <ul class="confianca">
+    <li><strong>Sem conexão</strong><span>com o seu banco</span></li>
+    <li><strong>Sem anúncio</strong><span>nenhum, em lugar nenhum</span></li>
+    <li><strong>Sem rastreador</strong><span>de terceiro</span></li>
+    <li><strong>R$ 4,99</strong><span>por mês, no Pro</span></li>
+  </ul>
+</section>
+
+<!-- ===================================================================
+     3. A DOR
+     =================================================================== -->
+<section class="secao secao--dor" id="dor" data-secao="dor">
+  <div class="secao__interno">
+    <p class="rotulo">O problema</p>
+    <h2 class="titulo">Você já desistiu de um app de finanças antes.</h2>
+    <p class="subcopy">Quase sempre por um destes dois motivos.</p>
+
+    <div class="cartas">
+      <article class="carta">
+        <h3>Ele queria tudo anotado</h3>
+        <p>Cada café, cada corrida, cada pão de queijo. No terceiro dia você parou de
+        anotar, e dali em diante o app estava te mostrando um número errado.</p>
+      </article>
+
+      <article class="carta">
+        <h3>Ou ele mostrava demais</h3>
+        <p>Conectou no banco, puxou tudo, montou dezoito gráficos e três abas de
+        relatório. Você abriu aquilo uma vez e nunca mais.</p>
+      </article>
+    </div>
+
+    <p class="destaque">E quem faz isso bem cobra por isso. A conta começa em
+    <strong>R$ 40 por mês</strong>.</p>
+  </div>
+</section>
+
+<!-- ===================================================================
+     4. COMO FUNCIONA
+     ⚠️ PRECISÃO OBRIGATÓRIA: o app NÃO importa nada do banco. O que ele evita
+     é digitar compra por compra. Nenhuma palavra aqui pode sugerir automação
+     que não existe.
+     =================================================================== -->
+<section class="secao secao--como" id="como" data-secao="como">
+  <div class="secao__interno">
+    <p class="rotulo">Como funciona</p>
+    <h2 class="titulo">Você cadastra uma vez. Ele cuida dos doze meses.</h2>
+
+    <p class="subcopy">Comprou a geladeira em 10x? Cadastra a geladeira e diz em qual
+    fatura cai a primeira parcela. O Parcelô espalha as outras nove nos meses certos,
+    avisa quando a última está chegando e tira ela da conta depois. Assinatura funciona
+    igual, você põe uma vez e ela se repete sozinha.</p>
+
+    <p class="subcopy">O que ele não faz é adivinhar. Nada entra sozinho no Parcelô,
+    porque nada vem do seu banco. Compra à vista de doze reais não precisa entrar.</p>
+
+    <figure class="aparelho" data-tela="lancamento" aria-hidden="true">
+      <div class="aparelho__vidro"><!-- tela: lançamento de compra --></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ===================================================================
+     5. A PEÇA-ASSINATURA, PRESA EM 100vh.
+     A rolagem vira o TEMPO. Cada "marco" abaixo é uma batida da coreografia:
+     a linha do tempo avança, a parcela morre, o valor liberado sobe.
+     Fable: os números são ILUSTRATIVOS e existem pra você ter matéria. Se a
+     coreografia pedir outros, troque, só mantenha a aritmética coerente.
+     Esta é a sua maior liberdade na página.
+     =================================================================== -->
+<section class="secao secao--linha" id="linha" data-secao="linha-do-tempo">
+  <div class="secao__interno">
+    <p class="rotulo">A linha do tempo</p>
+    <h2 class="titulo">Rola pra ver o ano acabar.</h2>
+    <p class="subcopy">Cada mês que passa mata uma parcela. O Parcelô mostra qual,
+    quando, e quanto volta pro seu bolso quando ela morre.</p>
+
+    <ol class="marcos" data-marcos>
+      <li data-mes="Setembro"  data-comprometido="1240" data-correndo="7">
+        <strong>R$ 1.240</strong> comprometido, com 7 parcelas correndo.
+      </li>
+      <li data-mes="Dezembro"  data-comprometido="1090" data-correndo="6" data-libera="150">
+        A última do sofá cai aqui. Você libera <strong>R$ 150 por mês</strong>.
+      </li>
+      <li data-mes="Fevereiro" data-comprometido="890"  data-correndo="4">
+        <strong>R$ 890</strong> comprometido, com 4 parcelas correndo.
+      </li>
+      <li data-mes="Maio"      data-comprometido="530"  data-correndo="2" data-libera="220">
+        Acabou a da geladeira. Mais <strong>R$ 220 por mês</strong> de volta.
+      </li>
+      <li data-mes="Agosto"    data-comprometido="310"  data-correndo="1">
+        <strong>R$ 310</strong> comprometido, com 1 parcela correndo.
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================================================================
+     6. PRIVACIDADE
+     =================================================================== -->
+<section class="secao secao--privacidade" id="privacidade" data-secao="privacidade">
+  <div class="secao__interno">
+    <p class="rotulo">Privacidade</p>
+    <h2 class="titulo">Ele nunca vai pedir a senha do seu banco.</h2>
+
+    <p class="subcopy">O Parcelô não se conecta ao seu banco, não lê sua fatura e não
+    pede seus dados bancários. Tudo o que aparece ali foi você quem anotou.</p>
+
+    <p class="subcopy">Também não tem anúncio, não tem rastreador e não tem ferramenta
+    medindo o que você faz lá dentro. Está escrito na
+    <a href="privacidade/">Política de Privacidade</a>, e você pode ler agora.</p>
+  </div>
+</section>
+
+<!-- ===================================================================
+     7. VEM POR AÍ
+     Pedido dele em 04/09: a página tem que CONTEMPLAR recursos que ainda não
+     existem, porque entram antes do lançamento e ele precisa ver o layout com
+     eles dentro.
+
+     🔑 O MARCADOR: cada item carrega data-embreve. Ele existe pra a página ser
+     verdadeira se subir hoje, e some com um atributo quando o recurso chegar.
+     Fable: desenhe o selo "Em breve" uma vez, com [data-embreve], e ele passa a
+     valer em qualquer lugar da página. Tirar o atributo tem que devolver o
+     estado final sem deixar buraco no layout.
+     =================================================================== -->
+<section class="secao secao--breve" id="breve" data-secao="breve">
+  <div class="secao__interno">
+    <p class="rotulo">Vem por aí</p>
+    <h2 class="titulo">O que está em construção agora</h2>
+    <p class="subcopy">Já estão sendo feitos e chegam antes do lançamento. Os três
+    entram no Pro.</p>
+
+    <div class="cartas">
+      <article class="carta" data-embreve>
+        <h3>Financiamentos e empréstimos <span class="selo-breve">Em breve</span></h3>
+        <p>O financiamento do carro e o empréstimo do banco entram na mesma conta das
+        parcelas, com saldo devedor à vista e um simulador pra ver o que muda se você
+        adiantar um pedaço.</p>
+      </article>
+
+      <article class="carta" data-embreve>
+        <h3>Aviso de teste grátis acabando <span class="selo-breve">Em breve</span></h3>
+        <p>Você assinou aquele streaming por sete dias de graça e esqueceu. O Parcelô
+        avisa antes de o teste virar cobrança.</p>
+      </article>
+
+      <!-- ⚠️ ELE PRECISA CONFERIR ESTA DESCRIÇÃO. "Compromissos informais" foi
+           interpretado por mim como dívida sem boleto (dinheiro entre pessoas).
+           Se for outra coisa, é só este parágrafo que muda. -->
+      <article class="carta" data-embreve>
+        <h3>Compromissos informais <span class="selo-breve">Em breve</span></h3>
+        <p>O dinheiro que não tem boleto. O que você deve pro amigo, o que emprestou, o
+        que ficou combinado e ninguém anotou. Entra na conta do mês junto com o resto.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================
+     8. PREÇO
+     Limites do grátis conferidos no Plano 08 (decisão dele, 08/08/26).
+     =================================================================== -->
+<section class="secao secao--preco" id="preco" data-secao="preco">
+  <div class="secao__interno">
+    <p class="rotulo">Preço</p>
+    <h2 class="titulo">R$ 4,99 por mês.</h2>
+    <p class="subcopy">O primeiro mês é grátis. E tem uma versão gratuita que continua
+    de graça, sem prazo pra acabar.</p>
+
+    <div class="planos">
+      <article class="plano">
+        <h3>Grátis</h3>
+        <p class="plano__preco"><strong>R$ 0</strong></p>
+        <ul>
+          <li>1 cartão</li>
+          <li>3 parcelamentos ativos</li>
+          <li>2 assinaturas</li>
+          <li>3 contas</li>
+          <li>Lembrete da fatura e do vencimento</li>
+        </ul>
+        <a class="botao botao--play"
+           href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-preco-gratis">
+          Começar de graça
+        </a>
+      </article>
+
+      <article class="plano plano--pro" data-destaque>
+        <h3>Pro</h3>
+        <p class="plano__preco"><strong>R$ 4,99</strong><span>por mês</span></p>
+        <p class="plano__selo">Primeiro mês grátis</p>
+        <ul>
+          <li>Cartões sem limite</li>
+          <li>Parcelamentos, assinaturas e contas sem limite</li>
+          <li>A projeção dos próximos meses</li>
+          <li>Aviso quando uma parcela está acabando</li>
+          <li>Cartão em degradê, metálico ou holográfico</li>
+        </ul>
+        <a class="botao botao--play"
+           href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-preco-pro">
+          Baixar e assinar
+        </a>
+      </article>
+    </div>
+
+    <p class="comparacao">Os apps que se conectam ao seu banco e leem seus extratos
+    custam <strong>a partir de R$ 40 por mês</strong>. Eles precisam pagar por essa
+    leitura, e a conta chega até você.
+    <span class="comparacao__fonte">Preço de mercado conferido em setembro de 2026.</span></p>
+  </div>
+</section>
+
+<!-- ===================================================================
+     9. PERGUNTAS. Sanfona nativa (details/summary): funciona sem JS,
+     é acessível de graça, e o Fable pode animar por cima.
+     =================================================================== -->
+<section class="secao secao--perguntas" id="perguntas" data-secao="perguntas">
+  <div class="secao__interno">
+    <p class="rotulo">Perguntas</p>
+    <h2 class="titulo">O que as pessoas perguntam antes de baixar</h2>
+
+    <div class="sanfona" data-sanfona>
+      <details>
+        <summary>Preciso conectar meu banco?</summary>
+        <p>Não, e ele não conecta nem se você quiser. Você digita o que quer acompanhar.</p>
+      </details>
+
+      <details>
+        <summary>Preciso anotar todas as minhas compras?</summary>
+        <p>Não. Só o que se repete, ou seja, parcelamento, assinatura e conta fixa.
+        Café e mercado do dia a dia ficam de fora.</p>
+      </details>
+
+      <details>
+        <summary>Tem no iPhone?</summary>
+        <p>Ainda não. Hoje o Parcelô é só Android. A versão pra iPhone está no plano.</p>
+      </details>
+
+      <!-- Esta pergunta é o que deixa a página honesta enquanto o "Vem por aí"
+           existir. Se um dia os três recursos estiverem no ar, ela sai junto
+           com os selos. -->
+      <details>
+        <summary>O que está marcado como "em breve" já funciona?</summary>
+        <p>Ainda não. São recursos em construção, e estão aqui porque entram antes do
+        lançamento. Tudo o que aparece sem essa marca já está no app hoje.</p>
+      </details>
+
+      <details>
+        <summary>O que acontece se eu cancelar o Pro?</summary>
+        <p>Você volta pro plano gratuito e nada é apagado. Seus dados continuam lá, e o
+        que passar do limite do grátis fica visível com um cadeado até você reassinar.</p>
+      </details>
+
+      <details>
+        <summary>Como eu cancelo?</summary>
+        <p>Pela Play Store, igual a qualquer assinatura. Dá pra excluir a conta inteira
+        também, pelo app ou por <a href="excluir-conta/">esta página</a>.</p>
+      </details>
+
+      <details>
+        <summary>Onde ficam os meus dados?</summary>
+        <p>No seu aparelho e numa conta sua, sincronizada pelo Firebase, do Google. A
+        <a href="privacidade/">Política de Privacidade</a> descreve o que é guardado.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================
+     10. CTA FINAL
+     =================================================================== -->
+<section class="secao secao--baixar" id="baixar" data-secao="baixar">
+  <div class="secao__interno">
+    <h2 class="titulo">Começa pelo grátis.</h2>
+    <p class="subcopy">Baixa, cadastra a parcela que mais te incomoda e vê quanto do
+    seu mês ela está comendo.</p>
+
+    <div class="lojas">
+      <a class="botao botao--play"
+         href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-final">
+        Baixar na Play Store
+      </a>
+      <span class="botao botao--apple botao--travado" aria-disabled="true">
+        App Store
+        <span class="botao__selo">Em breve</span>
+      </span>
+    </div>
+  </div>
+</section>
+
 </main>
 
-<footer>
-  Parcelô é mantido por Filipe Pimentel Gomes, Santos/SP.
+<!-- ===================================================================
+     RODAPÉ. Leva os 4 elementos que já existiam na home: Termos,
+     Privacidade, Excluir conta e Contato. Não sumir com nenhum.
+     =================================================================== -->
+<footer class="rodape">
+  <div class="rodape__interno">
+    <a class="nav__marca" href="./">
+      <span class="nav__ponto" aria-hidden="true"></span>Parcelô
+    </a>
+
+    <nav class="rodape__links" aria-label="Documentos e conta">
+      <a href="termos/">Termos de Uso</a>
+      <a href="privacidade/">Política de Privacidade</a>
+      <a href="excluir-conta/">Excluir sua conta</a>
+    </nav>
+
+    <div class="rodape__contato">
+      <p>Assuntos gerais:
+        <a href="mailto:contato@parceloapp.com.br">contato@parceloapp.com.br</a></p>
+      <p>Privacidade e dados:
+        <a href="mailto:privacidade@parceloapp.com.br">privacidade@parceloapp.com.br</a></p>
+    </div>
+
+    <p class="rodape__assinatura">Parcelô é mantido por Filipe Pimentel Gomes,
+    Santos/SP.</p>
+  </div>
 </footer>
-</div>
+
+<script src="assets/js/lenis.min.js" defer></script>
+<script src="assets/js/gsap.min.js" defer></script>
+<script src="assets/js/ScrollTrigger.min.js" defer></script>
+<script src="assets/landing.js" defer></script>
 </body>
 </html>
