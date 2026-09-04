@@ -16,17 +16,36 @@
 <!-- FALTA: assets/img/og.png (1200x630). Enquanto não existir, a tag fica fora de
      propósito, porque og:image quebrado é pior que og:image nenhum. -->
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a1b13">
 
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/landing.css">
+
+<!-- A marca "js" deixa o CSS esconder o que vai ser revelado pela rolagem, sem
+     piscar na primeira pintura. Se em 2,5s a landing.js não confirmar que subiu
+     (404, bloqueio, erro), a marca cai e a página aparece inteira: ninguém fica
+     olhando pra uma tela vazia por causa de um script. -->
+<script>
+document.documentElement.classList.add("js");
+setTimeout(function () {
+  if (!window.__landingPronta) document.documentElement.classList.remove("js");
+}, 2500);
+</script>
 </head>
 <body>
 
 <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
+<!-- O FEIXE. A luz que entra pelo canto superior direito é a assinatura da casa.
+     Aqui ela é um elemento próprio, fixo, pra poder reagir à rolagem só com
+     transform e opacity (nada de repintar gradiente de tela inteira a cada
+     quadro). O JS muda o humor dele conforme a seção onde você está. -->
+<div class="feixe" aria-hidden="true"></div>
+
 <!-- ===================================================================
      NAV. Pílula flutuante com o CTA sempre visível (a régua do Pierre).
-     O Fable decide como ela se comporta na rolagem.
+     Na rolagem ela ganha vidro e sombra. O marcador menta desliza até o
+     link da seção em que você está: é o "você está aqui" do menu.
      =================================================================== -->
 <header class="nav" data-nav>
   <a class="nav__marca" href="./" aria-label="Parcelô, página inicial">
@@ -36,6 +55,7 @@
     <a href="#como">Como funciona</a>
     <a href="#preco">Preço</a>
     <a href="#perguntas">Perguntas</a>
+    <span class="nav__marcador" aria-hidden="true"></span>
   </nav>
   <a class="botao botao--play nav__cta"
      href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-nav">Baixar</a>
@@ -48,40 +68,97 @@
 
 <!-- ===================================================================
      1. HERO
+     Texto à esquerda, aparelho à direita, o feixe iluminando o aparelho.
+     Os data-hero são as batidas da entrada (landing.js, entradaDoHero).
      =================================================================== -->
 <section class="secao secao--hero" id="hero" data-secao="hero">
   <div class="secao__interno">
+    <div class="hero__grade">
 
-    <h1 class="titulo titulo--herói">Quanto da sua próxima fatura já está comprometido?</h1>
+      <div class="hero__texto">
+        <h1 class="titulo titulo--herói" data-hero="titulo">Quanto da sua próxima fatura já está comprometido?</h1>
 
-    <p class="subcopy">O Parcelô soma o que você parcelou, o que assina e o que paga
-    todo mês, e mostra isso antes de a fatura fechar. Você cadastra uma vez. Ele cuida
-    dos doze meses seguintes.</p>
+        <p class="subcopy" data-hero="sub">O Parcelô soma o que você parcelou, o que assina e o que paga
+        todo mês, e mostra isso antes de a fatura fechar. Você cadastra uma vez. Ele cuida
+        dos doze meses seguintes.</p>
 
-    <div class="lojas">
-      <a class="botao botao--play"
-         href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-hero">
-        Baixar na Play Store
-      </a>
+        <div class="lojas" data-hero="lojas">
+          <a class="botao botao--play"
+             href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-hero">
+            <svg class="botao__icone" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Baixar na Play Store
+          </a>
 
-      <!-- App Store TRAVADA. Não é link. Fable: isto precisa ser um estado
-           DESENHADO (vidro fosco, cadeado, o que você inventar), nunca um botão
-           cinza morto. Sem hover falso: se não clica, não reage ao mouse. -->
-      <span class="botao botao--apple botao--travado" aria-disabled="true">
-        App Store
-        <span class="botao__selo">Em breve</span>
-      </span>
+          <!-- App Store TRAVADA. Não é link. Estado desenhado: vidro fosco,
+               cadeado, e o selo "Em breve" com o ponto menta vivo. Sem hover:
+               se não clica, não reage ao mouse. -->
+          <span class="botao botao--apple botao--travado" aria-disabled="true">
+            <svg class="botao__icone" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><rect x="4.5" y="8.5" width="11" height="8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            App Store
+            <span class="botao__selo">Em breve</span>
+          </span>
+        </div>
+
+        <p class="nota" data-hero="nota">Grátis pra começar. R$ 4,99 por mês se quiser tudo.</p>
+      </div>
+
+      <!-- MOCKUP HÍBRIDO. A foto real entra em assets/img/ quando ele mandar.
+           Até lá, a tela "Meu mês" está desenhada em HTML/CSS aqui dentro,
+           copiando a gramática do app (saudação, marca d'água do mês vazando
+           pela direita, rótulo em caixa alta sobre o número-herói, card de
+           vidro com os três totais). Números coerentes com a linha do tempo
+           da seção 5: R$ 1.240 em setembro, 7 parcelas, o sofá acaba em
+           dezembro e devolve R$ 150.
+
+           PRA TROCAR PELA FOTO: substitua o <div class="tela"> inteiro por
+           <img class="tela__foto" src="assets/img/meu-mes.png" alt="">.
+           A moldura, o reflexo do feixe e a varredura de luz continuam
+           iguais, porque moram na .aparelho__vidro e não na tela. -->
+      <div class="hero__aparelho">
+        <figure class="aparelho" data-tela="meu-mes" data-hero="aparelho" aria-hidden="true">
+          <div class="aparelho__vidro">
+            <div class="tela tela--meu-mes">
+              <div class="tela__status">
+                <span>19:32</span>
+                <span class="tela__sinais"><i></i><i></i><i></i></span>
+              </div>
+              <p class="tela__marca-dagua">SETEMBRO</p>
+              <div class="tela__cabecalho">
+                <span class="tela__menu"><i></i><i></i><i></i></span>
+                <span class="tela__ola">Olá, você</span>
+              </div>
+              <p class="tela__rotulo">Comprometido este mês</p>
+              <p class="tela__numero">
+                <span class="tela__moeda">R$</span><span class="tela__reais" data-contador="1240">1.240</span><span class="tela__centavos">,00</span>
+              </p>
+              <p class="tela__chips">
+                <span class="tela__chip tela__chip--menta">Libera R$ 150 em dezembro</span>
+                <span class="tela__chip">7 parcelas correndo</span>
+              </p>
+              <div class="tela__vidro">
+                <div><span class="tela__vidro-rotulo">Parcelas</span><strong>R$ 1.020,00</strong></div>
+                <div><span class="tela__vidro-rotulo">Assinaturas</span><strong>R$ 129,80</strong></div>
+                <div><span class="tela__vidro-rotulo">Contas</span><strong>R$ 90,20</strong></div>
+              </div>
+              <p class="tela__rotulo tela__rotulo--lista">Parcelas do mês</p>
+              <ul class="tela__lista">
+                <li><span class="tela__nome">Notebook</span><span class="tela__meta">3 de 18</span><strong>R$ 310,00</strong></li>
+                <li><span class="tela__nome">Geladeira</span><span class="tela__meta">2 de 10</span><strong>R$ 220,00</strong></li>
+                <li class="tela__lista--acabando"><span class="tela__nome">Sofá</span><span class="tela__meta">9 de 12, acaba em dezembro</span><strong>R$ 150,00</strong></li>
+                <li><span class="tela__nome">Celular</span><span class="tela__meta">6 de 12</span><strong>R$ 140,00</strong></li>
+              </ul>
+              <div class="tela__barra">
+                <span class="tela__barra--ativa">Mês</span>
+                <span>Parcelas</span>
+                <span>Assinaturas</span>
+                <span>Contas</span>
+              </div>
+            </div>
+          </div>
+        </figure>
+      </div>
+
     </div>
-
-    <p class="nota">Grátis pra começar. R$ 4,99 por mês se quiser tudo.</p>
-
-    <!-- MOCKUP HÍBRIDO. A foto real entra em assets/img/ quando ele mandar.
-         Até lá, o Fable desenha a tela aqui dentro em HTML/CSS e deixa a troca
-         fácil. Tela desta posição: "Meu mês". -->
-    <figure class="aparelho" data-tela="meu-mes" aria-hidden="true">
-      <div class="aparelho__vidro"><!-- tela --></div>
-    </figure>
-
   </div>
 </section>
 
@@ -89,7 +166,7 @@
      2. FAIXA DE CONFIANÇA. Quatro itens de propósito, não três.
      =================================================================== -->
 <section class="secao secao--confianca" id="confianca" data-secao="confianca">
-  <ul class="confianca">
+  <ul class="confianca" data-revelar-grupo>
     <li><strong>Sem conexão</strong><span>com o seu banco</span></li>
     <li><strong>Sem anúncio</strong><span>nenhum, em lugar nenhum</span></li>
     <li><strong>Sem rastreador</strong><span>de terceiro</span></li>
@@ -101,27 +178,52 @@
      3. A DOR
      =================================================================== -->
 <section class="secao secao--dor" id="dor" data-secao="dor">
-  <div class="secao__interno">
-    <p class="rotulo">O problema</p>
-    <h2 class="titulo">Você já desistiu de um app de finanças antes.</h2>
-    <p class="subcopy">Quase sempre por um destes dois motivos.</p>
+  <div class="secao__interno dor__interno">
+    <div class="dor__cabeca">
+      <p class="rotulo" data-revelar>O problema</p>
+      <h2 class="titulo" data-revelar>Você já desistiu de um app de finanças antes.</h2>
+      <p class="subcopy" data-revelar>Quase sempre por um destes dois motivos.</p>
+    </div>
 
-    <div class="cartas">
-      <article class="carta">
+    <!-- Três golpes numa fileira: os dois motivos e a conta. As cenas dos dois
+         primeiros são desenho puro (CSS e SVG), sem texto, e animam uma vez
+         quando o card entra na tela (classe golpe--visto, landing.js). -->
+    <div class="cartas dor__golpes">
+      <article class="carta golpe" data-golpe="anotar">
+        <!-- Sete linhas de anotação: três marcadas, as outras vazias e apagando.
+             "No terceiro dia você parou de anotar." -->
+        <div class="golpe__cena" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
         <h3>Ele queria tudo anotado</h3>
         <p>Cada café, cada corrida, cada pão de queijo. No terceiro dia você parou de
         anotar, e dali em diante o app estava te mostrando um número errado.</p>
       </article>
 
-      <article class="carta">
+      <article class="carta golpe" data-golpe="demais">
+        <!-- Nove gráficos apertados numa grade: barras, anel, linha, área,
+             pilha, tabela, painel, pontos, medidor. Entram em rajada. -->
+        <div class="golpe__cena" aria-hidden="true">
+          <svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" focusable="false">
+            <g style="--n:0" transform="translate(0 0)"><rect class="fundo" width="72" height="42" rx="8"/><rect x="12" y="24" width="7" height="10" rx="1.5"/><rect x="23" y="16" width="7" height="18" rx="1.5"/><rect x="34" y="20" width="7" height="14" rx="1.5"/><rect class="menta" x="45" y="10" width="7" height="24" rx="1.5"/></g>
+            <g style="--n:1" transform="translate(84 0)"><rect class="fundo" width="72" height="42" rx="8"/><circle class="anel" cx="22" cy="21" r="10"/><circle class="anel anel--menta" cx="22" cy="21" r="10" pathLength="1" stroke-dasharray="0.38 1"/><rect x="40" y="13" width="20" height="3" rx="1.5"/><rect x="40" y="20" width="13" height="3" rx="1.5"/><rect x="40" y="27" width="17" height="3" rx="1.5"/></g>
+            <g style="--n:2" transform="translate(168 0)"><rect class="fundo" width="72" height="42" rx="8"/><polyline class="traco traco--menta" points="10,30 22,20 32,26 44,12 62,18"/><polyline class="traco" points="10,34 22,30 32,32 44,25 62,29"/></g>
+            <g style="--n:3" transform="translate(0 54)"><rect class="fundo" width="72" height="42" rx="8"/><path class="area" d="M10 32 L22 22 L34 26 L46 14 L62 20 L62 34 L10 34 Z"/></g>
+            <g style="--n:4" transform="translate(84 54)"><rect class="fundo" width="72" height="42" rx="8"/><rect x="12" y="10" width="10" height="24" rx="1.5"/><rect class="menta" x="12" y="10" width="10" height="9" rx="1.5"/><rect x="31" y="14" width="10" height="20" rx="1.5"/><rect class="menta" x="31" y="14" width="10" height="6" rx="1.5"/><rect x="50" y="8" width="10" height="26" rx="1.5"/><rect class="menta" x="50" y="8" width="10" height="12" rx="1.5"/></g>
+            <g style="--n:5" transform="translate(168 54)"><rect class="fundo" width="72" height="42" rx="8"/><rect x="10" y="10" width="52" height="3" rx="1.5"/><rect x="10" y="17" width="40" height="3" rx="1.5"/><rect x="10" y="24" width="46" height="3" rx="1.5"/><rect x="10" y="31" width="30" height="3" rx="1.5"/></g>
+            <g style="--n:6" transform="translate(0 108)"><rect class="fundo" width="72" height="42" rx="8"/><rect class="menta" x="10" y="10" width="26" height="8" rx="2"/><rect x="10" y="24" width="48" height="3" rx="1.5"/><rect x="10" y="31" width="36" height="3" rx="1.5"/></g>
+            <g style="--n:7" transform="translate(84 108)"><rect class="fundo" width="72" height="42" rx="8"/><circle cx="14" cy="14" r="3"/><circle cx="26" cy="14" r="3"/><circle class="menta" cx="38" cy="14" r="3"/><circle cx="50" cy="14" r="3"/><circle cx="14" cy="28" r="3"/><circle class="menta" cx="26" cy="28" r="3"/><circle cx="38" cy="28" r="3"/><circle cx="50" cy="28" r="3"/></g>
+            <g style="--n:8" transform="translate(168 108)"><rect class="fundo" width="72" height="42" rx="8"/><path class="traco" d="M14 34 A22 22 0 0 1 58 34"/><path class="traco traco--menta" d="M14 34 A22 22 0 0 1 36 12"/></g>
+          </svg>
+        </div>
         <h3>Ou ele mostrava demais</h3>
         <p>Conectou no banco, puxou tudo, montou dezoito gráficos e três abas de
         relatório. Você abriu aquilo uma vez e nunca mais.</p>
       </article>
-    </div>
 
-    <p class="destaque">E quem faz isso bem cobra por isso. A conta começa em
-    <strong>R$ 40 por mês</strong>.</p>
+      <p class="destaque golpe golpe--conta" data-revelar>E quem faz isso bem cobra por isso. A conta começa em
+      <strong>R$ 40 por mês</strong>.</p>
+    </div>
   </div>
 </section>
 
@@ -133,20 +235,50 @@
      =================================================================== -->
 <section class="secao secao--como" id="como" data-secao="como">
   <div class="secao__interno">
-    <p class="rotulo">Como funciona</p>
-    <h2 class="titulo">Você cadastra uma vez. Ele cuida dos doze meses.</h2>
+    <div class="como__grade">
+      <div class="como__texto">
+        <p class="rotulo" data-revelar>Como funciona</p>
+        <h2 class="titulo" data-revelar>Você cadastra uma vez. Ele cuida dos doze meses.</h2>
 
-    <p class="subcopy">Comprou a geladeira em 10x? Cadastra a geladeira e diz em qual
-    fatura cai a primeira parcela. O Parcelô espalha as outras nove nos meses certos,
-    avisa quando a última está chegando e tira ela da conta depois. Assinatura funciona
-    igual, você põe uma vez e ela se repete sozinha.</p>
+        <p class="subcopy" data-revelar>Comprou a geladeira em 10x? Cadastra a geladeira e diz em qual
+        fatura cai a primeira parcela. O Parcelô espalha as outras nove nos meses certos,
+        avisa quando a última está chegando e tira ela da conta depois. Assinatura funciona
+        igual, você põe uma vez e ela se repete sozinha.</p>
 
-    <p class="subcopy">O que ele não faz é adivinhar. Nada entra sozinho no Parcelô,
-    porque nada vem do seu banco. Compra à vista de doze reais não precisa entrar.</p>
+        <p class="subcopy" data-revelar>O que ele não faz é adivinhar. Nada entra sozinho no Parcelô,
+        porque nada vem do seu banco. Compra à vista de doze reais não precisa entrar.</p>
+      </div>
 
-    <figure class="aparelho" data-tela="lancamento" aria-hidden="true">
-      <div class="aparelho__vidro"><!-- tela: lançamento de compra --></div>
-    </figure>
+      <!-- SEGUNDA TELA DO CELULAR: a folha "Nova compra parcelada" do app, com os
+           rótulos reais dela. Reserva desenhada, troca pela foto igual à do hero.
+           A folha se preenche sozinha quando entra na tela (classe aparelho--visto):
+           campo a campo, e então os dez meses acendem em sequência, que é o
+           "espalha as outras nove nos meses certos" da copy. A geladeira é a
+           mesma do hero: R$ 2.200 em 10x de R$ 220, primeira parcela em agosto. -->
+      <div class="como__aparelho">
+        <figure class="aparelho" data-tela="lancamento" aria-hidden="true">
+          <div class="aparelho__vidro">
+            <div class="tela tela--lancamento">
+              <div class="tela__status">
+                <span>19:34</span>
+                <span class="tela__sinais"><i></i><i></i><i></i></span>
+              </div>
+              <div class="tela__folha">
+                <p class="tela__folha-titulo">Nova compra parcelada</p>
+                <div class="tela__segmento"><span class="tela__segmento--ativo">Compra nova</span><span>Já em andamento</span></div>
+                <div class="tela__campo" data-passo="1"><span class="tela__campo-rotulo">O que você comprou?</span><span class="tela__campo-valor">Geladeira</span></div>
+                <div class="tela__campo" data-passo="2"><span class="tela__campo-rotulo">Valor</span><span class="tela__campo-valor">R$ 2.200,00</span></div>
+                <div class="tela__campo" data-passo="3"><span class="tela__campo-rotulo">Parcelas</span><span class="tela__parcelas"><i>6x</i><i>8x</i><i class="tela__parcelas--ativa">10x</i><i>12x</i><i>18x</i></span></div>
+                <div class="tela__campo" data-passo="4"><span class="tela__campo-rotulo">Primeira parcela cai na fatura de</span><span class="tela__campo-valor">Agosto</span></div>
+                <p class="tela__meses" data-passo="5"><i>ago</i><i>set</i><i>out</i><i>nov</i><i>dez</i><i>jan</i><i>fev</i><i>mar</i><i>abr</i><i>mai</i></p>
+                <p class="tela__resumo" data-passo="6">Começa em agosto e vai até maio.</p>
+                <span class="tela__botao" data-passo="7">Adicionar compra</span>
+              </div>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -159,29 +291,93 @@
      Esta é a sua maior liberdade na página.
      =================================================================== -->
 <section class="secao secao--linha" id="linha" data-secao="linha-do-tempo">
-  <div class="secao__interno">
-    <p class="rotulo">A linha do tempo</p>
-    <h2 class="titulo">Rola pra ver o ano acabar.</h2>
-    <p class="subcopy">Cada mês que passa mata uma parcela. O Parcelô mostra qual,
-    quando, e quanto volta pro seu bolso quando ela morre.</p>
+  <!-- O PALCO. Com JS animando, a seção fica alta (460svh) e o palco gruda no
+       topo (position: sticky) enquanto a rolagem vira tempo: a cada batida um
+       marco troca de lugar com o anterior, o mês na marca d'água muda, o número
+       comprometido desce, o liberado sobe, as parcelas morrem riscadas e a
+       cabeça da trilha anda de mês em mês. Sem JS, ou com movimento reduzido,
+       a lista <ol> aparece inteira, vertical, com o mês de cada marco, e a
+       cena (aria-hidden, só visual) nem é exibida. -->
+  <div class="linha__palco">
+    <div class="secao__interno linha__interno">
+      <div class="linha__texto">
+        <p class="rotulo" data-revelar>A linha do tempo</p>
+        <h2 class="titulo" data-revelar>Rola pra ver o ano acabar.</h2>
+        <p class="subcopy" data-revelar>Cada mês que passa mata uma parcela. O Parcelô mostra qual,
+        quando, e quanto volta pro seu bolso quando ela morre.</p>
+      </div>
 
-    <ol class="marcos" data-marcos>
-      <li data-mes="Setembro"  data-comprometido="1240" data-correndo="7">
-        <strong>R$ 1.240</strong> comprometido, com 7 parcelas correndo.
-      </li>
-      <li data-mes="Dezembro"  data-comprometido="1090" data-correndo="6" data-libera="150">
-        A última do sofá cai aqui. Você libera <strong>R$ 150 por mês</strong>.
-      </li>
-      <li data-mes="Fevereiro" data-comprometido="890"  data-correndo="4">
-        <strong>R$ 890</strong> comprometido, com 4 parcelas correndo.
-      </li>
-      <li data-mes="Maio"      data-comprometido="530"  data-correndo="2" data-libera="220">
-        Acabou a da geladeira. Mais <strong>R$ 220 por mês</strong> de volta.
-      </li>
-      <li data-mes="Agosto"    data-comprometido="310"  data-correndo="1">
-        <strong>R$ 310</strong> comprometido, com 1 parcela correndo.
-      </li>
-    </ol>
+      <ol class="marcos" data-marcos>
+        <li data-mes="Setembro"  data-comprometido="1240" data-correndo="7">
+          <strong>R$ 1.240</strong> comprometido, com 7 parcelas correndo.
+        </li>
+        <li data-mes="Dezembro"  data-comprometido="1090" data-correndo="6" data-libera="150">
+          A última do sofá cai aqui. Você libera <strong>R$ 150 por mês</strong>.
+        </li>
+        <li data-mes="Fevereiro" data-comprometido="890"  data-correndo="4">
+          <strong>R$ 890</strong> comprometido, com 4 parcelas correndo.
+        </li>
+        <li data-mes="Maio"      data-comprometido="530"  data-correndo="2" data-libera="220">
+          Acabou a da geladeira. Mais <strong>R$ 220 por mês</strong> de volta.
+        </li>
+        <li data-mes="Agosto"    data-comprometido="310"  data-correndo="1">
+          <strong>R$ 310</strong> comprometido, com 1 parcela correndo.
+        </li>
+      </ol>
+
+      <!-- A CENA (só visual). As sete parcelas fecham a aritmética dos marcos:
+           setembro 1.240 = 310 + 220 + 220 + 150 + 140 + 120 + 80. data-morre é
+           a batida em que cada uma morre (1 = dezembro, 2 = fevereiro,
+           3 = maio, 4 = agosto): sofá em dezembro (-150 = 1.090); tênis e fone
+           até fevereiro (-200 = 890); geladeira e celular até maio (-360 = 530);
+           viagem até agosto (-220 = 310, só o notebook segue). --fatia é o
+           tamanho da barra em relação à maior. -->
+      <div class="linha__cena" aria-hidden="true">
+        <p class="linha__mes"><span>Setembro</span><span>Dezembro</span><span>Fevereiro</span><span>Maio</span><span>Agosto</span></p>
+
+        <div class="linha__numeros">
+          <div class="linha__numero">
+            <span class="linha__rotulo">Comprometido</span>
+            <strong data-linha-comprometido>R$ 1.240</strong>
+          </div>
+          <div class="linha__numero linha__numero--ganho">
+            <span class="linha__rotulo">Liberado</span>
+            <strong data-linha-liberado>R$ 0</strong>
+          </div>
+        </div>
+
+        <ul class="linha__parcelas">
+          <li style="--fatia:1"><span class="linha__nome">Notebook</span><span class="linha__barra"></span><em>R$ 310</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.71" data-morre="4"><span class="linha__nome">Viagem</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.71" data-morre="3"><span class="linha__nome">Geladeira</span><span class="linha__barra"></span><em>R$ 220</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.48" data-morre="1"><span class="linha__nome">Sofá</span><span class="linha__barra"></span><em>R$ 150</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.45" data-morre="3"><span class="linha__nome">Celular</span><span class="linha__barra"></span><em>R$ 140</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.39" data-morre="2"><span class="linha__nome">Tênis</span><span class="linha__barra"></span><em>R$ 120</em><span class="linha__risco"></span></li>
+          <li style="--fatia:0.26" data-morre="2"><span class="linha__nome">Fone</span><span class="linha__barra"></span><em>R$ 80</em><span class="linha__risco"></span></li>
+        </ul>
+
+        <!-- Doze meses de setembro a agosto; --i é a posição (0 a 11) e
+             data-marco liga o tique ao marco de mesmo índice. -->
+        <div class="linha__trilha">
+          <div class="linha__eixo">
+            <span class="linha__preenchido"></span>
+            <i style="--i:0" class="linha__tique--marco" data-marco="0">set</i>
+            <i style="--i:1">out</i>
+            <i style="--i:2">nov</i>
+            <i style="--i:3" class="linha__tique--marco" data-marco="1">dez</i>
+            <i style="--i:4">jan</i>
+            <i style="--i:5" class="linha__tique--marco" data-marco="2">fev</i>
+            <i style="--i:6">mar</i>
+            <i style="--i:7">abr</i>
+            <i style="--i:8" class="linha__tique--marco" data-marco="3">mai</i>
+            <i style="--i:9">jun</i>
+            <i style="--i:10">jul</i>
+            <i style="--i:11" class="linha__tique--marco" data-marco="4">ago</i>
+            <span class="linha__cabeca"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -189,16 +385,35 @@
      6. PRIVACIDADE
      =================================================================== -->
 <section class="secao secao--privacidade" id="privacidade" data-secao="privacidade">
-  <div class="secao__interno">
-    <p class="rotulo">Privacidade</p>
-    <h2 class="titulo">Ele nunca vai pedir a senha do seu banco.</h2>
+  <div class="secao__interno privacidade__interno">
+    <!-- Três coisas que ele não faz, riscadas: banco, fatura, senha. O risco
+         menta se desenha quando a fileira entra na tela (classe selos--vistos). -->
+    <div class="privacidade__selos" aria-hidden="true" data-privacidade-selos>
+      <span class="riscado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg>
+        <svg class="risco" viewBox="0 0 52 52" focusable="false"><line x1="13" y1="13" x2="39" y2="39" pathLength="1"/></svg>
+      </span>
+      <span class="riscado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 12h5M9.5 15.5h5"/></svg>
+        <svg class="risco" viewBox="0 0 52 52" focusable="false"><line x1="13" y1="13" x2="39" y2="39" pathLength="1"/></svg>
+      </span>
+      <span class="riscado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H21M18 12v3M15 12v2.5"/></svg>
+        <svg class="risco" viewBox="0 0 52 52" focusable="false"><line x1="13" y1="13" x2="39" y2="39" pathLength="1"/></svg>
+      </span>
+    </div>
 
-    <p class="subcopy">O Parcelô não se conecta ao seu banco, não lê sua fatura e não
-    pede seus dados bancários. Tudo o que aparece ali foi você quem anotou.</p>
+    <p class="rotulo" data-revelar>Privacidade</p>
+    <h2 class="titulo titulo--afiado" data-revelar>Ele nunca vai pedir a senha do seu banco.</h2>
 
-    <p class="subcopy">Também não tem anúncio, não tem rastreador e não tem ferramenta
-    medindo o que você faz lá dentro. Está escrito na
-    <a href="privacidade/">Política de Privacidade</a>, e você pode ler agora.</p>
+    <div class="privacidade__colunas">
+      <p class="subcopy" data-revelar>O Parcelô não se conecta ao seu banco, não lê sua fatura e não
+      pede seus dados bancários. Tudo o que aparece ali foi você quem anotou.</p>
+
+      <p class="subcopy" data-revelar>Também não tem anúncio, não tem rastreador e não tem ferramenta
+      medindo o que você faz lá dentro. Está escrito na
+      <a href="privacidade/">Política de Privacidade</a>, e você pode ler agora.</p>
+    </div>
   </div>
 </section>
 
@@ -210,19 +425,25 @@
 
      🔑 O MARCADOR: cada item carrega data-embreve. Ele existe pra a página ser
      verdadeira se subir hoje, e some com um atributo quando o recurso chegar.
-     Fable: desenhe o selo "Em breve" uma vez, com [data-embreve], e ele passa a
-     valer em qualquer lugar da página. Tirar o atributo tem que devolver o
-     estado final sem deixar buraco no layout.
+     O selo "Em breve" está desenhado UMA vez no CSS (.selo-breve, o mesmo
+     desenho do .botao__selo do hero) e vale em qualquer lugar da página.
+     Tirar o atributo tem que devolver o estado final sem deixar buraco no
+     layout.
      =================================================================== -->
 <section class="secao secao--breve" id="breve" data-secao="breve">
   <div class="secao__interno">
-    <p class="rotulo">Vem por aí</p>
-    <h2 class="titulo">O que está em construção agora</h2>
-    <p class="subcopy">Já estão sendo feitos e chegam antes do lançamento. Os três
+    <p class="rotulo" data-revelar>Vem por aí</p>
+    <h2 class="titulo" data-revelar>O que está em construção agora</h2>
+    <p class="subcopy" data-revelar>Já estão sendo feitos e chegam antes do lançamento. Os três
     entram no Pro.</p>
 
-    <div class="cartas">
+    <!-- O CONTRATO DO SELO, em CSS: com data-embreve o card é vidro fosco com
+         textura de obra, o ícone apagado e o selo aceso; sem o atributo, o card
+         vira card normal, o ícone vira menta e o selo some (display: none),
+         sem buraco no layout. Nascer um recurso = apagar um atributo. -->
+    <div class="cartas breve__cartas" data-revelar-grupo>
       <article class="carta" data-embreve>
+        <span class="breve__icone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5v5M17.5 9.5v5"/></svg></span>
         <h3>Financiamentos e empréstimos <span class="selo-breve">Em breve</span></h3>
         <p>O financiamento do carro e o empréstimo do banco entram na mesma conta das
         parcelas, com saldo devedor à vista e um simulador pra ver o que muda se você
@@ -230,6 +451,7 @@
       </article>
 
       <article class="carta" data-embreve>
+        <span class="breve__icone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M12 3v1.5"/></svg></span>
         <h3>Aviso de teste grátis acabando <span class="selo-breve">Em breve</span></h3>
         <p>Você assinou aquele streaming por sete dias de graça e esqueceu. O Parcelô
         avisa antes de o teste virar cobrança.</p>
@@ -239,6 +461,7 @@
            interpretado por mim como dívida sem boleto (dinheiro entre pessoas).
            Se for outra coisa, é só este parágrafo que muda. -->
       <article class="carta" data-embreve>
+        <span class="breve__icone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M14 19a4 4 0 0 1 7 -1.5"/></svg></span>
         <h3>Compromissos informais <span class="selo-breve">Em breve</span></h3>
         <p>O dinheiro que não tem boleto. O que você deve pro amigo, o que emprestou, o
         que ficou combinado e ninguém anotou. Entra na conta do mês junto com o resto.</p>
@@ -253,12 +476,12 @@
      =================================================================== -->
 <section class="secao secao--preco" id="preco" data-secao="preco">
   <div class="secao__interno">
-    <p class="rotulo">Preço</p>
-    <h2 class="titulo">R$ 4,99 por mês.</h2>
-    <p class="subcopy">O primeiro mês é grátis. E tem uma versão gratuita que continua
+    <p class="rotulo" data-revelar>Preço</p>
+    <h2 class="titulo" data-revelar>R$ 4,99 por mês.</h2>
+    <p class="subcopy" data-revelar>O primeiro mês é grátis. E tem uma versão gratuita que continua
     de graça, sem prazo pra acabar.</p>
 
-    <div class="planos">
+    <div class="planos" data-revelar-grupo>
       <article class="plano">
         <h3>Grátis</h3>
         <p class="plano__preco"><strong>R$ 0</strong></p>
@@ -269,7 +492,7 @@
           <li>3 contas</li>
           <li>Lembrete da fatura e do vencimento</li>
         </ul>
-        <a class="botao botao--play"
+        <a class="botao botao--play botao--vidro"
            href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-preco-gratis">
           Começar de graça
         </a>
@@ -293,10 +516,20 @@
       </article>
     </div>
 
-    <p class="comparacao">Os apps que se conectam ao seu banco e leem seus extratos
-    custam <strong>a partir de R$ 40 por mês</strong>. Eles precisam pagar por essa
-    leitura, e a conta chega até você.
-    <span class="comparacao__fonte">Preço de mercado conferido em setembro de 2026.</span></p>
+    <!-- A comparação com o mercado. As duas barras (só visual) são os dois
+         números que já estão no texto: R$ 4,99 contra R$ 40, oito vezes menos.
+         Crescem quando a caixa entra na tela (classe comparacao--vista). -->
+    <div class="comparacao-caixa" data-revelar>
+      <p class="comparacao">Os apps que se conectam ao seu banco e leem seus extratos
+      custam <strong>a partir de R$ 40 por mês</strong>. Eles precisam pagar por essa
+      leitura, e a conta chega até você.
+      <span class="comparacao__fonte">Preço de mercado conferido em setembro de 2026.</span></p>
+
+      <div class="comparacao__barras" aria-hidden="true">
+        <div class="barra barra--parcelo"><span class="barra__rotulo"><span class="nav__ponto"></span>R$ 4,99</span><i style="--fatia:0.125"></i></div>
+        <div class="barra"><span class="barra__rotulo">R$ 40</span><i style="--fatia:1"></i></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -306,22 +539,24 @@
      =================================================================== -->
 <section class="secao secao--perguntas" id="perguntas" data-secao="perguntas">
   <div class="secao__interno">
-    <p class="rotulo">Perguntas</p>
-    <h2 class="titulo">O que as pessoas perguntam antes de baixar</h2>
+    <p class="rotulo" data-revelar>Perguntas</p>
+    <h2 class="titulo" data-revelar>O que as pessoas perguntam antes de baixar</h2>
 
-    <div class="sanfona" data-sanfona>
-      <details>
+    <!-- name="perguntas" em todos: abrir uma fecha a outra, nativo do navegador,
+         sem JS (navegador antigo ignora e deixa abrir várias, que também serve). -->
+    <div class="sanfona" data-sanfona data-revelar-grupo>
+      <details name="perguntas">
         <summary>Preciso conectar meu banco?</summary>
         <p>Não, e ele não conecta nem se você quiser. Você digita o que quer acompanhar.</p>
       </details>
 
-      <details>
+      <details name="perguntas">
         <summary>Preciso anotar todas as minhas compras?</summary>
         <p>Não. Só o que se repete, ou seja, parcelamento, assinatura e conta fixa.
         Café e mercado do dia a dia ficam de fora.</p>
       </details>
 
-      <details>
+      <details name="perguntas">
         <summary>Tem no iPhone?</summary>
         <p>Ainda não. Hoje o Parcelô é só Android. A versão pra iPhone está no plano.</p>
       </details>
@@ -329,25 +564,25 @@
       <!-- Esta pergunta é o que deixa a página honesta enquanto o "Vem por aí"
            existir. Se um dia os três recursos estiverem no ar, ela sai junto
            com os selos. -->
-      <details>
+      <details name="perguntas">
         <summary>O que está marcado como "em breve" já funciona?</summary>
         <p>Ainda não. São recursos em construção, e estão aqui porque entram antes do
         lançamento. Tudo o que aparece sem essa marca já está no app hoje.</p>
       </details>
 
-      <details>
+      <details name="perguntas">
         <summary>O que acontece se eu cancelar o Pro?</summary>
         <p>Você volta pro plano gratuito e nada é apagado. Seus dados continuam lá, e o
         que passar do limite do grátis fica visível com um cadeado até você reassinar.</p>
       </details>
 
-      <details>
+      <details name="perguntas">
         <summary>Como eu cancelo?</summary>
         <p>Pela Play Store, igual a qualquer assinatura. Dá pra excluir a conta inteira
         também, pelo app ou por <a href="excluir-conta/">esta página</a>.</p>
       </details>
 
-      <details>
+      <details name="perguntas">
         <summary>Onde ficam os meus dados?</summary>
         <p>No seu aparelho e numa conta sua, sincronizada pelo Firebase, do Google. A
         <a href="privacidade/">Política de Privacidade</a> descreve o que é guardado.</p>
@@ -360,17 +595,19 @@
      10. CTA FINAL
      =================================================================== -->
 <section class="secao secao--baixar" id="baixar" data-secao="baixar">
-  <div class="secao__interno">
-    <h2 class="titulo">Começa pelo grátis.</h2>
-    <p class="subcopy">Baixa, cadastra a parcela que mais te incomoda e vê quanto do
+  <div class="secao__interno baixar__interno">
+    <h2 class="titulo titulo--afiado" data-revelar>Começa pelo grátis.</h2>
+    <p class="subcopy" data-revelar>Baixa, cadastra a parcela que mais te incomoda e vê quanto do
     seu mês ela está comendo.</p>
 
-    <div class="lojas">
+    <div class="lojas" data-revelar-grupo>
       <a class="botao botao--play"
          href="https://play.google.com/store/apps/details?id=br.com.parcelo&utm_source=parceloapp&utm_medium=site&utm_campaign=lp-final">
+        <svg class="botao__icone" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Baixar na Play Store
       </a>
       <span class="botao botao--apple botao--travado" aria-disabled="true">
+        <svg class="botao__icone" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><rect x="4.5" y="8.5" width="11" height="8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         App Store
         <span class="botao__selo">Em breve</span>
       </span>
@@ -383,12 +620,15 @@
 <!-- ===================================================================
      RODAPÉ. Leva os 4 elementos que já existiam na home: Termos,
      Privacidade, Excluir conta e Contato. Não sumir com nenhum.
+     Três colunas no desktop (marca, documentos, contato), uma no celular.
      =================================================================== -->
 <footer class="rodape">
   <div class="rodape__interno">
-    <a class="nav__marca" href="./">
-      <span class="nav__ponto" aria-hidden="true"></span>Parcelô
-    </a>
+    <div class="rodape__marca">
+      <a class="nav__marca" href="./">
+        <span class="nav__ponto" aria-hidden="true"></span>Parcelô
+      </a>
+    </div>
 
     <nav class="rodape__links" aria-label="Documentos e conta">
       <a href="termos/">Termos de Uso</a>
