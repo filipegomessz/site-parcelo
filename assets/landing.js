@@ -181,12 +181,22 @@
       }
     });
 
+    /* No primeiro instante a página ainda está com a fonte de reserva e é bem
+       mais curta: várias seções cabem na janela ao mesmo tempo e TODAS mandam
+       o feixe mudar de humor, em cascata. A última vencia, e a primeira dobra
+       abria com o feixe da privacidade, escurecendo sozinha na cara de quem
+       chegou. Por isso o humor só começa a valer quando o layout assenta, e aí
+       ele é aplicado de uma vez, na seção onde a pessoa está de verdade. */
+    var assentado = false;
+    var secoes = [];
+
     gsap.utils.toArray("[data-secao]").forEach(function (secao) {
       var nome = secao.getAttribute("data-secao");
       var humor = HUMOR_DO_FEIXE[nome] || { opacity: 0.8, scale: 1 };
 
       function chegar() {
         html.setAttribute("data-aqui", nome);
+        if (!assentado) return;
         gsap.to(feixe, {
           opacity: humor.opacity,
           scale: humor.scale,
@@ -196,6 +206,8 @@
         });
       }
 
+      secoes.push({ nome: nome, humor: humor, elemento: secao });
+
       ST.create({
         trigger: secao,
         start: "top 55%",
@@ -203,6 +215,29 @@
         onEnter: chegar,
         onEnterBack: chegar
       });
+    });
+
+    quandoAFontePuder(function () {
+      // Remede tudo com a fonte definitiva no lugar, senão as posições ficam
+      // as da página curta e cada seção acende cedo demais.
+      ST.refresh();
+      ST.update();
+      assentado = true;
+
+      // Quem decide é a geometria, não o `isActive`: logo depois do refresh o
+      // estado interno ainda é o da página curta, e ele apontava pra seção
+      // errada. A linha dos 55% é a mesma que o start dos gatilhos usa.
+      var linha = window.scrollY + window.innerHeight * 0.55;
+      var atual = secoes.filter(function (s) {
+        var caixa = s.elemento.getBoundingClientRect();
+        return (
+          caixa.top + window.scrollY <= linha && caixa.bottom + window.scrollY > linha
+        );
+      })[0];
+      if (!atual) return;
+
+      html.setAttribute("data-aqui", atual.nome);
+      gsap.set(feixe, { opacity: atual.humor.opacity, scale: atual.humor.scale });
     });
   }
 
@@ -664,6 +699,14 @@
     // mas ele recalcula a página inteira: chamar a cada evento de resize
     // (que no celular dispara em rajada) trava a aba, que é o que a regra da
     // casa proíbe. Por isso o atraso, e por isso só quando a LARGURA muda.
+    // Página aberta em aba de fundo (o clássico "abrir em nova aba") mede tudo
+    // com o layout ainda encolhido: o navegador não dá altura de verdade pra
+    // quem não está na tela. Os gatilhos nascem nas posições erradas e só um
+    // resize os consertaria. Quando a aba aparece, remede.
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) window.ScrollTrigger.refresh();
+    });
+
     var larguraAnterior = window.innerWidth;
     var espera = null;
     window.addEventListener("resize", function () {
