@@ -1738,14 +1738,14 @@ a {
   align-content: center;
 }
 
-/* A seção tem 5 paradas e meia, e cada uma custa cerca de meia tela de
-   rolagem: janeiro parado pra ler, as barras andando metade do caminho, a
-   virada pra junho, as barras de novo, a virada pra dezembro, e um respiro.
-   A conta é 100svh de palco mais 5,5 paradas. Cresceu em relação aos 270svh
-   de antes porque ele pediu as paradas intermediárias, mas nenhuma delas é
-   arrasto: em toda parada alguma coisa acontece ou é dada pra ler. */
+/* 100svh de palco mais 4,7 paradas de meia tela cada. As paradas são: o
+   travamento (curto, só a margem de erro do gesto), as barras andando metade
+   do caminho, a virada pra junho, as barras de novo, a virada pra dezembro e
+   um respiro. Encolheu de 380svh quando o travamento inicial passou de uma
+   parada inteira pra um quinto de parada: ele rolava quatro ou cinco vezes
+   antes de ver a primeira animação. */
 .js .linha--viva {
-  min-height: 380svh;
+  min-height: 340svh;
 }
 
 .js .linha--viva .linha__palco {
