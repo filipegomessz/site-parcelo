@@ -661,7 +661,12 @@
        essa, DESLIZA: ela é tempo passando, e tempo passa. O que ele não quer é
        ela parada entre dois meses, e não está: fora da virada ela sempre
        repousa em cima de um mês. */
-    var RESPIRO = 0.2;
+    /* RESPIRO ZERO dentro da timeline. O travamento existe, mas mora na
+       ROLAGEM: são os 345px antes do primeiro gatilho, onde nada dispara.
+       Deixar um trecho vazio também aqui dentro fazia a viagem gastar o
+       primeiro quarto do tempo sem nada acontecer, e isso se sentia como
+       atraso na largada da animação. */
+    var RESPIRO = 0;
     var CORRIDA = 0.55;
     var PULO = { duration: 0.1, ease: "steps(1)" };
 
@@ -689,14 +694,18 @@
       paradas.push(tMeia + 0.55, tChegada);
       tl.addLabel("meia" + i, tMeia).addLabel("virada" + i, tVirada);
 
-      // ── A rolagem do meio: só as barras, e nada mais. ──────────────────
+      /* ── A rolagem do meio: só as barras, e nada mais. ──────────────────
+         Curva de ida e volta, não de saída. Com `power4.out` a barra fazia
+         90% do caminho no primeiro terço e passava o resto parada: era isso
+         que dava a sensação de "rápido demais" e, logo depois, de "faltando
+         animação". O movimento agora se distribui pelo tempo inteiro. */
       parcelas.forEach(function (p, k) {
         var de = progressos[k][i - 1];
         var ate = progressos[k][i];
         if (typeof de !== "number" || typeof ate !== "number" || de === ate) return;
         tl.to(
           p,
-          { "--fatia": (de + ate) / 2, duration: 0.55, ease: CURVA.saida },
+          { "--fatia": (de + ate) / 2, duration: 0.55, ease: CURVA.entrada },
           tMeia
         );
       });
@@ -791,13 +800,12 @@
         )
         .to(li, { opacity: 1, duration: PULO.duration, ease: PULO.ease }, antesDaChegada);
 
-      if (liberadoEl) {
-        tl.to(
-          liberadoEl,
-          { scale: 1.05, duration: 0.09, yoyo: true, repeat: 1, ease: CURVA.saida },
-          tChegada
-        );
-      }
+      /* Aqui havia um realce de escala no número liberado. Saiu: ele ia e
+         voltava DEPOIS do ponto de chegada, e como a viagem para exatamente
+         na chegada, o playhead nunca completava a volta. O número ficava
+         preso numa escala intermediária e mudava de tamanho a cada parada,
+         que é o "piscando à toa". Um efeito que só cabe inteiro fora da
+         parada não cabe neste modelo. */
     });
 
     /* ── Quem comanda: a rolagem escolhe a parada, o tempo faz a viagem ──
@@ -815,10 +823,11 @@
 
       var destino = paradas[k];
       var distancia = Math.abs(destino - tl.time());
-      // Uma parada vale cerca de 0,55 na timeline. A duração acompanha a
-      // distância pra quem pula duas de uma vez não esperar o dobro, nem ver
-      // a cena teleportar.
-      var duracao = Math.min(0.55 + distancia * 0.5, 1.5);
+      /* O DOBRO do tempo de antes: as barras e o fio da trilha corriam rápido
+         demais pra se acompanhar com o olho. A duração cresce com a distância
+         pra quem pula duas paradas de uma vez não esperar o dobro nem ver a
+         cena teleportar. */
+      var duracao = Math.min(1.1 + distancia * 1, 3);
 
       // `tweenTo` é a API que move o playhead de uma timeline pausada.
       // Animar a propriedade `time` com um gsap.to comum cria o tween mas não

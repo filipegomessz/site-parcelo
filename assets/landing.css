@@ -1738,14 +1738,17 @@ a {
   align-content: center;
 }
 
-/* 100svh de palco mais 4,7 paradas de meia tela cada. As paradas são: o
-   travamento (curto, só a margem de erro do gesto), as barras andando metade
-   do caminho, a virada pra junho, as barras de novo, a virada pra dezembro e
-   um respiro. Encolheu de 380svh quando o travamento inicial passou de uma
-   parada inteira pra um quinto de parada: ele rolava quatro ou cinco vezes
-   antes de ver a primeira animação. */
+/* 100svh de palco mais a faixa que a rolagem percorre. A faixa é dividida em
+   cinco: o travamento e as quatro paradas. Com 200svh cada fatia fica em
+   torno de 180px, que são uma ou duas voltas de roda: ele pediu que cada
+   rolagem, no máximo duas, fizesse a tela mudar. Vinha de 340svh, onde cada
+   fatia custava 345px e ele precisava insistir pra acontecer alguma coisa.
+
+   ⚠️ Quem manda no ritmo aqui é a FAIXA, não a duração da animação: a
+   animação toca em tempo próprio (landing.js, `irPara`), e esta altura só
+   decide de quanto em quanto a próxima é disparada. */
 .js .linha--viva {
-  min-height: 340svh;
+  min-height: 200svh;
 }
 
 .js .linha--viva .linha__palco {
