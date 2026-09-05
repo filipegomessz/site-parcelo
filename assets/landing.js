@@ -863,8 +863,8 @@
 
     /* O assentamento é feito na mão, e não pelo `snap` do ScrollTrigger, por
        um motivo simples: quem rola esta página é o Lenis. O snap de fábrica
-       escreve a posição por fora dele, e o Lenis a devolve no quadro seguinte
-       — medido, a rolagem parava a 17px da parada e ficava lá. Pedindo ao
+       escreve a posição por fora dele, e o Lenis a devolve no quadro seguinte.
+       Medido: a rolagem parava a 17px da parada e ficava lá. Pedindo ao
        Lenis, quem move é quem manda, e o movimento sai suave de graça.
 
        A espera de 130ms é o que distingue "parou de rolar" de "está no meio
