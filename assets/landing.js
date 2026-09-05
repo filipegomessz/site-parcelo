@@ -759,21 +759,54 @@
     });
 
     /* ── Quem comanda ─────────────────────────────────────────────────────
-       O respiro depois de dezembro existe porque a última parada não pode
-       cair no pixel exato em que o palco descola: o resultado do ano inteiro
-       apareceria e sumiria no mesmo gesto. */
+
+       A TRAVA, antes de janeiro. A pessoa chega na seção ainda rolando, com a
+       inércia da seção anterior, e sem isto o embalo já passava janeiro pra
+       fevereiro antes de ela ler o que estava na tela. Aqui o palco já está
+       grudado e janeiro parado, mas o gatilho ainda não começou: são ~250px
+       que servem de absorvedor. É o lugar certo pra isto, e o 6ca0b43 já
+       dizia: o travamento mora na FAIXA DE ROLAGEM antes do primeiro gatilho,
+       nunca dentro da timeline.
+
+       O RESPIRO, depois de dezembro, porque a última parada não pode cair no
+       pixel exato em que o palco descola: o resultado do ano inteiro
+       apareceria e sumiria no mesmo gesto.
+
+       ⚠️ O SINAL DOS DOIS DESLOCAMENTOS, que eu errei uma vez e custou o bug
+       do "o site volta a rolar em novembro". Em `"a b"`, o `a` é o ponto do
+       ELEMENTO e o `b` é o ponto do VIEWPORT. Mexer no lado do viewport anda
+       para o lado contrário do esperado: `"bottom bottom-=216"` termina 216px
+       DEPOIS, não antes, e a timeline seguia rodando com o palco já subindo.
+       Por isso o recuo do fim é feito no lado do ELEMENTO. */
+    function trava() {
+      return Math.round(window.innerHeight * 0.35);
+    }
+
     function respiro() {
       return Math.round(window.innerHeight * 0.3);
     }
 
     var gatilho = ST.create({
       trigger: secao,
-      start: "top top",
-      end: function () { return "bottom bottom-=" + respiro(); },
+      start: function () { return "top top-=" + trava(); },
+      end: function () { return "bottom-=" + respiro() + " bottom"; },
       scrub: 0.35,
       animation: tl,
-      onUpdate: aoRolar
+      onUpdate: aoRolar,
+      // A trava propriamente dita: ao cruzar a borda, a seção CATA quem chega
+      // embalado e para no mês mais próximo. Sem isto o absorvedor acima só
+      // adia o problema, porque um lance forte atravessa ele inteiro.
+      onEnter: pegarNoMes,
+      onEnterBack: pegarNoMes
     });
+
+    /* O ScrollTrigger pode disparar `onEnter` DURANTE o próprio `create`, se a
+       página já abrir com a rolagem dentro da seção. Nessa hora o `var gatilho`
+       ainda não recebeu o valor, e `faixa()` estouraria em cima de undefined. */
+    function pegarNoMes() {
+      if (!gatilho || faixa() <= 0) return;
+      irParaMes(mesDoPx(window.scrollY), 0.45);
+    }
 
     var LIMIAR = 60;   // px de roda que valem um passo
     var PAUSA = 320;   // quieto por isto, e o gesto recomeça a contar do zero
@@ -815,13 +848,13 @@
       }
     }
 
-    function irParaMes(m) {
+    function irParaMes(m, duracao) {
       mesAlvo = Math.max(0, Math.min(ULTIMO, m));
       var destino = pxDoMes(mesAlvo);
       var distancia = Math.abs(destino - window.scrollY);
       // A viagem acompanha a distância de leve, pra quem gira rápido não ver a
       // cena teleportar nem esperar o dobro por ter pulado dois meses.
-      levarPara(destino, Math.min(0.9, 0.36 + distancia * 0.0006));
+      levarPara(destino, duracao || Math.min(0.9, 0.36 + distancia * 0.0006));
     }
 
     /* A RODA, quantizada: um clique é um mês, e o destino já nasce num mês. */
