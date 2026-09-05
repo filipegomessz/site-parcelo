@@ -572,15 +572,31 @@
     });
   }
 
-  /* --- A linha do tempo: a rolagem vira o tempo ----------------------------
-     O palco gruda por CSS (position: sticky, classe linha--viva); aqui só a
-     timeline, presa à rolagem da seção inteira. Cada marco é uma batida de
-     uma unidade: na primeira metade o conteúdo troca no lugar (o marco
-     anterior sai, o novo entra, o mês da marca d'água muda, o número desce,
-     o liberado sobe, as parcelas daquela batida morrem riscadas, a cabeça da
-     trilha anda); na segunda metade, nada muda, pra a pessoa ler. Tudo é
-     tween puro, sem callback de direção, então voltar a rolagem desfaz tudo
-     na ordem certa.
+  /* --- A linha do tempo: a rolagem É o calendário --------------------------
+     Decisão dele em 05/09, depois de sentir os quatro modelos na bancada
+     (artifact cbdf41b2). O eixo de rolagem da seção são os DOZE MESES, um pra
+     um, e cada parcela morre no mês dela.
+
+     DUAS COISAS QUE NÃO SÃO A MESMA, e confundi-las custou seis rodadas antes:
+     o ACOPLAMENTO (a cena anda junto com o gesto, via scrub) e o DESTINO (onde
+     a rolagem pode parar). O que mudou aqui foi só o segundo.
+
+     ⚠️ POR QUE NÃO EXISTE MAIS ASSENTAMENTO NA RODA. Antes a cena seguia a
+     POSIÇÃO da rolagem: um clique de roda anda ~100px, um mês vale ~100px mas
+     nunca exatamente, então a rolagem parava a 1,09 mês, a bolinha descansava
+     fora do tique e o assentamento a puxava de volta. Aquele puxão era o "vai
+     sozinha" que ele reportou. Agora o destino JÁ NASCE num mês: no instante
+     em que a roda é tocada, o alvo é o mês seguinte. Não existe repouso entre
+     dois meses, então não há o que corrigir depois.
+
+     ⚠️ O que continua igual, e é o que faz a cena não soltar do dedo: o
+     `scrub: 0.35`. Foi tirar isso que gerou a queixa do 3485eab ("rolo, nada
+     acontece, e depois parece que algo aconteceu sozinho"). A ligação fica.
+
+     O palco gruda por CSS (position: sticky, classe linha--viva), imune ao
+     resize da barra do celular. Sem JS ou com movimento reduzido, a <ol> dos
+     oito estados aparece inteira, na vertical, com o mês de cada linha, e a
+     cena (aria-hidden) nem é exibida.
      ---------------------------------------------------------------------- */
   function linhaDoTempo() {
     var gsap = window.gsap;
@@ -599,41 +615,50 @@
     var preenchido = cena.querySelector(".linha__preenchido");
     var eixo = cena.querySelector(".linha__eixo");
 
+    var ULTIMO = 11; // dezembro; a timeline tem uma unidade por mês
+
+    var dados = parcelas
+      .map(function (p) {
+        return {
+          el: p,
+          risco: p.querySelector(".linha__risco"),
+          inicio: parseFloat(p.style.getPropertyValue("--fatia")) || 0,
+          fim: parseInt(p.getAttribute("data-fim"), 10),
+          valor: parseInt(p.getAttribute("data-valor"), 10) || 0
+        };
+      })
+      .filter(function (d) {
+        return !isNaN(d.fim) && d.fim > 0 && d.fim <= ULTIMO;
+      });
+
+    if (!dados.length) return;
+
     secao.classList.add("linha--viva");
 
-    var valores = marcos.map(function (li) {
-      return parseInt(li.getAttribute("data-comprometido"), 10) || 0;
-    });
-    var base = valores[0];
+    /* O total sai da SOMA das parcelas, não de um número escrito à parte.
+       É a aritmética que o plano chama de lei: cada parcela que some tira do
+       comprometido exatamente o próprio valor, e comprometido mais liberado
+       dá sempre o mesmo. Somando aqui, não tem como divergir. */
+    var base = dados.reduce(function (s, d) { return s + d.valor; }, 0);
 
-    // Posição (0 a 1) de cada marco na trilha, lida do tique de mesmo índice.
-    var posicoes = marcos.map(function (li, i) {
-      var tique = eixo && eixo.querySelector('[data-marco="' + i + '"]');
-      var pos = tique ? parseFloat(tique.style.getPropertyValue("--i")) : NaN;
-      return isNaN(pos) ? i / (marcos.length - 1) : pos / 11;
-    });
+    // A lista já vem em ordem de término (regra da barra ser progresso), mas
+    // o dinheiro é ordenado aqui por garantia: se alguém reordenar o HTML sem
+    // mexer nos data-fim, os valores continuam batendo com as barras.
+    var porFim = dados.slice().sort(function (a, b) { return a.fim - b.fim; });
 
-    gsap.set(marcos, { opacity: 0, y: 14 });
-    gsap.set(marcos[0], { opacity: 1, y: 0 });
+    gsap.set(marcos, { opacity: 0 });
+    gsap.set(marcos[0], { opacity: 1 });
     if (meses.length) {
       gsap.set(meses, { opacity: 0 });
       gsap.set(meses[0], { opacity: 1 });
     }
 
     /* Os dois números saem de um objeto só, e quem escreve no DOM é o TICKER,
-       não um callback.
-
-       Callback de tween e callback de timeline os dois falharam aqui, e pelo
-       mesmo motivo: ao fazer scrub o ScrollTrigger renderiza a timeline
-       suprimindo eventos, então `onUpdate` simplesmente não roda. O resto da
-       cena (mês, barras, bolinha) muda porque são propriedades que o GSAP
-       escreve direto, mas os números, que dependiam de código, ficavam uma
-       parada inteira atrás: a cena em junho e o valor ainda em janeiro.
-
-       O ticker roda sempre. Ele lê o valor que os tweens já deixaram no
-       objeto e escreve se mudou. A guarda do `ultimo` é o que torna isso
-       barato: com steps(1) o número muda três vezes na seção inteira, então
-       o DOM é tocado três vezes, não a cada quadro. */
+       não um callback. Ao fazer scrub o ScrollTrigger renderiza a timeline
+       SUPRIMINDO EVENTOS, então `onUpdate` de tween e de timeline não roda, e
+       os números ficavam uma parada inteira atrás. O ticker roda sempre; a
+       guarda do `ultimo` é o que torna isso barato, porque o DOM só é tocado
+       nas sete trocas do ano. */
     var estado = { comprometido: base };
     var ultimo = null;
     function escrever() {
@@ -646,253 +671,215 @@
     escrever();
     gsap.ticker.add(escrever);
 
-    /* A cena anda COM o dedo, e assenta sozinha nas paradas.
-
-       Duas tentativas anteriores erraram por lados opostos, e as duas eram
-       dele: presa à rolagem sem suavização, a animação copiava o gesto
-       irregular e ficava truncada; disparada por gatilho, tocava no ritmo
-       certo mas solta do gesto, e a queixa virou "rolo, nada acontece, e
-       depois parece que algo aconteceu sozinho".
-
-       O que faltava não era escolher um dos dois: era juntar o acoplamento do
-       primeiro com o repouso limpo do segundo. `scrub` prende a cena ao dedo,
-       com um fio de inércia pra o pulso da roda não aparecer; `snap` faz a
-       rolagem assentar na parada mais próxima quando o dedo sai. Assim nunca
-       se para no meio de uma virada, que era o problema original da bolinha
-       entre dois meses. */
-    var tl = gsap.timeline({ paused: true, defaults: { ease: CURVA.entrada } });
-
-    /* O ROTEIRO, decidido por ele em 04/09 e afinado depois de rolar a seção:
-
-         0 a 0,2   o travamento. Só a margem de erro do gesto que trouxe a
-                   pessoa até aqui, pra nada se mexer no instante em que a
-                   seção prende. Curto de propósito: a PRIMEIRA rolagem depois
-                   do lock já tem que animar alguma coisa.
-         0,2 a 1,2 só as barras andam, metade do caminho até o próximo mês. O
-                   mês NÃO muda aqui.
-         1,2 a 2,2 a virada.
-         2,2 a 3,2 as barras que sobraram andam a outra metade.
-         3,2 a 4,2 a segunda virada, pela mesma regra.
-         4,2 a 4,6 respiro antes de soltar o palco.
-
-       DENTRO DA VIRADA, TUDO CHEGA JUNTO. As barras correm, a bolinha desliza
-       pela trilha, o mês faz a troca, e no MESMO instante em que a barra bate
-       no fim ela já está cinza e riscada. Nada disso espera rolagem extra, e
-       nada chega antes: mês em junho com barra pela metade era o que ele via
-       na segunda print. As parcelas que acabam no mesmo mês morrem todas de
-       uma vez, sem escalonar uma atrás da outra.
-
-       Só os NÚMEROS saltam, com `steps(1)`, e por um motivo que continua
-       valendo: contar de 2.000 até 550 mostraria "R$ 27 liberado", que não é o
-       valor de parcela nenhuma. Eles trocam no ponto exato da chegada, com um
-       realce curto no liberado pra a troca não passar despercebida. A bolinha,
-       essa, DESLIZA: ela é tempo passando, e tempo passa. O que ele não quer é
-       ela parada entre dois meses, e não está: fora da virada ela sempre
-       repousa em cima de um mês. */
-    /* RESPIRO ZERO dentro da timeline. O travamento existe, mas mora na
-       ROLAGEM: são os 345px antes do primeiro gatilho, onde nada dispara.
-       Deixar um trecho vazio também aqui dentro fazia a viagem gastar o
-       primeiro quarto do tempo sem nada acontecer, e isso se sentia como
-       atraso na largada da animação. */
-    var RESPIRO = 0;
-    var CORRIDA = 0.55;
+    var tl = gsap.timeline({ paused: true });
     var PULO = { duration: 0.1, ease: "steps(1)" };
+    var MORTE = 0.55;
+    var DISSOLVE = 0.34;
 
-    // O progresso de cada parcela em cada parada: --fatia é janeiro,
-    // data-progresso traz junho e dezembro.
-    var progressos = parcelas.map(function (p) {
-      var lista = [parseFloat(p.style.getPropertyValue("--fatia")) || 0];
-      (p.getAttribute("data-progresso") || "").split(",").forEach(function (v) {
-        var n = parseFloat(v);
-        if (!isNaN(n)) lista.push(n);
-      });
-      return lista;
+    /* AS BARRAS. Cada uma enche do progresso de janeiro até o fim, no mês
+       dela. São sete inclinações diferentes na mesma tela, e é isso que faz o
+       tempo ficar visível sem acrescentar elemento nenhum: o notebook sobe
+       rápido porque acaba em fevereiro, o fone mal sai do lugar.
+
+       `ease: "none"` de propósito, e isto NÃO contradiz a regra do 6ca0b43.
+       Aquela regra existe contra o `power4.out`, que faz 90% do caminho no
+       primeiro terço e passa o resto parada. Aqui a barra é um relógio: quem
+       paga parcela paga o mesmo todo mês, então o avanço é constante. A curva
+       de percurso vem da VIAGEM da rolagem entre um mês e o outro, que é onde
+       ela pertence. */
+    dados.forEach(function (d) {
+      tl.fromTo(
+        d.el,
+        { "--fatia": d.inicio },
+        { "--fatia": 1, duration: d.fim, ease: "none" },
+        0
+      );
     });
 
-    // Onde a cena descansa. O playhead viaja de uma parada à outra e para.
-    var paradas = [0];
-
-    marcos.forEach(function (li, i) {
-      if (i === 0) return;
-
-      var tMeia = RESPIRO + (i - 1) * 2;
-      var tVirada = tMeia + 1;
-      var tChegada = tVirada + CORRIDA;
-
-      paradas.push(tMeia + 0.55, tChegada);
-      tl.addLabel("meia" + i, tMeia).addLabel("virada" + i, tVirada);
-
-      /* ── A rolagem do meio: só as barras, e nada mais. ──────────────────
-         Curva de ida e volta, não de saída. Com `power4.out` a barra fazia
-         90% do caminho no primeiro terço e passava o resto parada: era isso
-         que dava a sensação de "rápido demais" e, logo depois, de "faltando
-         animação". O movimento agora se distribui pelo tempo inteiro. */
-      parcelas.forEach(function (p, k) {
-        var de = progressos[k][i - 1];
-        var ate = progressos[k][i];
-        if (typeof de !== "number" || typeof ate !== "number" || de === ate) return;
-        tl.to(
-          p,
-          { "--fatia": (de + ate) / 2, duration: 0.55, ease: CURVA.entrada },
-          tMeia
-        );
-      });
-
-      // ── A virada. Tudo parte junto e tudo chega junto, em tChegada. ────
-
-      // As barras correm a outra metade. Curva de ida e volta, não de saída:
-      // com `power4.out` a barra encostava no fim na metade do tempo e ficava
-      // parada esperando o resto, que é o "cheia mas ainda não apagou" da
-      // print. Com esta, o fim da barra e o fim da rolagem são o mesmo ponto.
-      parcelas.forEach(function (p, k) {
-        var de = progressos[k][i - 1];
-        var ate = progressos[k][i];
-        if (typeof de !== "number" || typeof ate !== "number" || de === ate) return;
-        tl.to(p, { "--fatia": ate, duration: CORRIDA, ease: CURVA.entrada }, tVirada);
-      });
-
-      // A bolinha desliza pela trilha no mesmo compasso das barras, com a
-      // mesma curva, e encosta no mês novo no instante exato em que elas
-      // batem no fim. Antes ela teleportava pro mês seguinte logo no começo,
-      // e ficava "junho" com as barras ainda pela metade.
-      if (eixo) {
-        tl.to(
-          eixo,
-          { "--progresso": posicoes[i], duration: CORRIDA, ease: CURVA.entrada },
-          tVirada
-        );
+    /* A MORTE. Risco e apagar com a MESMA duração e a MESMA curva, terminando
+       no instante exato em que a barra encosta no fim. Curvas diferentes aqui
+       foi o defeito do print: o traço chegava na frente e a parcela ficava
+       riscada e ainda acesa. E `--morta` faz as duas coisas numa variável só,
+       tirar a cor e apagar, justamente pra elas não saírem de sincronia. */
+    dados.forEach(function (d) {
+      var comeco = Math.max(0, d.fim - MORTE);
+      var quanto = d.fim - comeco;
+      if (d.risco) {
+        tl.to(d.risco, { scaleX: 1, duration: quanto, ease: CURVA.entrada }, comeco);
       }
-      if (preenchido) {
-        tl.to(
-          preenchido,
-          { scaleX: posicoes[i], duration: CORRIDA, ease: CURVA.entrada },
-          tVirada
-        );
-      }
+      tl.to(d.el, { "--morta": 1, duration: quanto, ease: CURVA.entrada }, comeco);
+    });
 
-      // O mês grande troca por dissolução, começando depois e terminando na
-      // mesma chegada.
-      if (meses[i - 1]) {
-        tl.to(
-          meses[i - 1],
-          { opacity: 0, duration: CORRIDA * 0.62, ease: CURVA.entrada },
-          tVirada + CORRIDA * 0.38
-        );
-      }
-      if (meses[i]) {
-        tl.to(
-          meses[i],
-          { opacity: 1, duration: CORRIDA * 0.62, ease: CURVA.entrada },
-          tVirada + CORRIDA * 0.38
-        );
-      }
+    /* O DINHEIRO salta no mês de cada morte, com `steps(1)`. A regra do
+       d9df417 fica inteira: contar de 2.000 até 1.700 mostraria valores que
+       não são de parcela nenhuma. E como `steps(1)` só vira no FIM do tween,
+       ele começa uma duração antes pra terminar no ponto certo.
 
-      // As que acabam neste mês apagam DURANTE a última parte da corrida, de
-      // modo que, no instante em que a barra encosta no fim, ela já está
-      // cinza e riscada. Antes isso vinha depois e exigia rolagem a mais, que
-      // é o estado da print: barra cheia, traço posto, e ainda acesa. Todas
-      // juntas, sem escalonar: acabam no mesmo mês, somem no mesmo gesto.
-      parcelas
-        .filter(function (p) {
-          return parseInt(p.getAttribute("data-morre"), 10) === i;
-        })
-        .forEach(function (p) {
-          var risco = p.querySelector(".linha__risco");
-          // Começa quando a barra passa de uns 90% e termina junto com ela.
-          // Mais tarde que isto e dá pra flagrar a barra visualmente cheia
-          // ainda em verde, que é o defeito da print.
-          var comeco = tVirada + CORRIDA * 0.42;
-          var quanto = CORRIDA * 0.58;
-          // Mesma duração e mesma curva nos dois, senão o traço chega na
-          // frente e a parcela fica riscada e acesa ao mesmo tempo.
-          if (risco) {
-            tl.to(risco, { scaleX: 1, duration: quanto, ease: CURVA.entrada }, comeco);
-          }
-          tl.to(p, { "--morta": 1, duration: quanto, ease: CURVA.entrada }, comeco);
-        });
-
-      // O dinheiro troca de lado junto com o texto da esquerda, EM tChegada.
-      // Como `steps(1)` só vira o valor no fim do tween, o tween começa uma
-      // duração antes pra terminar no ponto certo; posicionado em tChegada,
-      // os números apareciam depois de todo o resto já ter chegado.
-      var antesDaChegada = tChegada - PULO.duration;
+       O texto da esquerda troca no mesmo instante que o número. */
+    var acumulado = base;
+    porFim.forEach(function (d, k) {
+      acumulado -= d.valor;
+      var quando = Math.max(0, d.fim - PULO.duration);
       tl.to(
         estado,
-        { comprometido: valores[i], duration: PULO.duration, ease: PULO.ease },
-        antesDaChegada
-      )
-        .to(
-          marcos[i - 1],
-          { opacity: 0, duration: PULO.duration, ease: PULO.ease },
-          antesDaChegada
-        )
-        .to(li, { opacity: 1, duration: PULO.duration, ease: PULO.ease }, antesDaChegada);
-
-      /* Aqui havia um realce de escala no número liberado. Saiu: ele ia e
-         voltava DEPOIS do ponto de chegada, e como a viagem para exatamente
-         na chegada, o playhead nunca completava a volta. O número ficava
-         preso numa escala intermediária e mudava de tamanho a cada parada,
-         que é o "piscando à toa". Um efeito que só cabe inteiro fora da
-         parada não cabe neste modelo. */
+        { comprometido: acumulado, duration: PULO.duration, ease: PULO.ease },
+        quando
+      );
+      if (marcos[k]) {
+        tl.to(marcos[k], { opacity: 0, duration: PULO.duration, ease: PULO.ease }, quando);
+      }
+      if (marcos[k + 1]) {
+        tl.to(marcos[k + 1], { opacity: 1, duration: PULO.duration, ease: PULO.ease }, quando);
+      }
     });
 
-    /* ── Quem comanda: o dedo, com um fio de inércia e repouso garantido ──
+    /* A BOLINHA E O FIO da trilha andam o ano inteiro, linear e sem parar.
+       Ela é o tempo passando, e tempo passa. Fora do trânsito ela repousa
+       sempre em cima de um mês, porque o destino da rolagem é sempre um mês. */
+    if (eixo) {
+      tl.fromTo(eixo, { "--progresso": 0 },
+        { "--progresso": 1, duration: ULTIMO, ease: "none" }, 0);
+    }
+    if (preenchido) {
+      tl.fromTo(preenchido, { scaleX: 0 },
+        { scaleX: 1, duration: ULTIMO, ease: "none" }, 0);
+    }
 
-       `scrub: 0.35` é curto de propósito. Ele não existe pra atrasar a cena,
-       e sim pra o pulso da roda não aparecer quadro a quadro: a cena persegue
-       a posição do dedo e chega nela em pouco mais de um terço de segundo.
-       Acima disso já se sente como atraso, que é justamente a queixa.
-
-       `snap` leva a rolagem à parada mais próxima quando o dedo sai. É ele
-       que garante que ninguém fica parado no meio de uma virada, com a
-       bolinha entre dois meses ou uma barra pela metade. O atraso curto antes
-       de assentar existe pra não brigar com quem ainda está rolando. */
-    var duracaoTotal = tl.duration();
-    var pontos = paradas.map(function (t) {
-      return t / duracaoTotal;
+    /* O MÊS GRANDE troca por dissolução, não por corte, e a dissolução mora no
+       MEIO da viagem entre dois meses. Nas paradas só existe um mês aceso. */
+    meses.forEach(function (m, i) {
+      if (i < ULTIMO) {
+        tl.to(m, { opacity: 0, duration: DISSOLVE, ease: CURVA.entrada },
+          i + 0.5 - DISSOLVE / 2);
+      }
+      if (i > 0) {
+        tl.to(m, { opacity: 1, duration: DISSOLVE, ease: CURVA.entrada },
+          i - 0.5 - DISSOLVE / 2);
+      }
     });
+
+    /* ── Quem comanda ─────────────────────────────────────────────────────
+       O respiro depois de dezembro existe porque a última parada não pode
+       cair no pixel exato em que o palco descola: o resultado do ano inteiro
+       apareceria e sumiria no mesmo gesto. */
+    function respiro() {
+      return Math.round(window.innerHeight * 0.3);
+    }
 
     var gatilho = ST.create({
       trigger: secao,
       start: "top top",
-      end: "bottom bottom",
+      end: function () { return "bottom bottom-=" + respiro(); },
       scrub: 0.35,
       animation: tl,
-      onUpdate: agendarRepouso
+      onUpdate: aoRolar
     });
 
-    /* O assentamento é feito na mão, e não pelo `snap` do ScrollTrigger, por
-       um motivo simples: quem rola esta página é o Lenis. O snap de fábrica
-       escreve a posição por fora dele, e o Lenis a devolve no quadro seguinte.
-       Medido: a rolagem parava a 17px da parada e ficava lá. Pedindo ao
-       Lenis, quem move é quem manda, e o movimento sai suave de graça.
+    var LIMIAR = 60;   // px de roda que valem um passo
+    var PAUSA = 320;   // quieto por isto, e o gesto recomeça a contar do zero
+    var buffer = 0;
+    var mesAlvo = 0;
+    var passoAtivo = false;
+    var limpaBuffer = null;
+    var esperaAssentar = null;
+    var soltaPasso = null;
 
-       A espera de 130ms é o que distingue "parou de rolar" de "está no meio
-       do gesto". A folga de 0,004 evita o vaivém: assentar dispara rolagem,
-       que dispara este mesmo código de novo. */
-    var esperaRepouso = null;
+    function faixa() { return gatilho.end - gatilho.start; }
 
-    function agendarRepouso() {
-      clearTimeout(esperaRepouso);
-      esperaRepouso = setTimeout(repousar, 130);
+    function pxDoMes(m) {
+      return gatilho.start + (Math.max(0, Math.min(ULTIMO, m)) / ULTIMO) * faixa();
     }
 
-    function repousar() {
-      var faixa = gatilho.end - gatilho.start;
-      var onde = gatilho.progress;
-      if (faixa <= 0 || onde <= 0 || onde >= 1) return;
+    function mesDoPx(px) {
+      var f = faixa();
+      if (f <= 0) return 0;
+      return Math.max(0, Math.min(ULTIMO, Math.round(((px - gatilho.start) / f) * ULTIMO)));
+    }
 
-      var perto = pontos.reduce(function (a, b) {
-        return Math.abs(b - onde) < Math.abs(a - onde) ? b : a;
-      });
-      if (Math.abs(perto - onde) < 0.004) return;
+    function soltar() { passoAtivo = false; }
 
-      var destino = gatilho.start + perto * faixa;
+    /* Quem move a rolagem é o Lenis, sempre. Mandar a posição por fora dele
+       não funciona: ele a devolve no quadro seguinte, e a rolagem fica parada
+       a alguns pixels do destino. Medido em 04/09, foram 17px. */
+    function levarPara(destino, duracao) {
+      passoAtivo = true;
+      clearTimeout(esperaAssentar);
+      clearTimeout(soltaPasso);
+      // Rede de segurança: se o onComplete não vier (interrupção, versão de
+      // biblioteca), o passo se solta sozinho logo depois da viagem.
+      soltaPasso = setTimeout(soltar, duracao * 1000 + 140);
       if (lenisAtivo) {
-        lenisAtivo.scrollTo(destino, { duration: 0.45 });
+        lenisAtivo.scrollTo(destino, { duration: duracao, onComplete: soltar });
       } else {
         window.scrollTo({ top: destino, behavior: "smooth" });
       }
+    }
+
+    function irParaMes(m) {
+      mesAlvo = Math.max(0, Math.min(ULTIMO, m));
+      var destino = pxDoMes(mesAlvo);
+      var distancia = Math.abs(destino - window.scrollY);
+      // A viagem acompanha a distância de leve, pra quem gira rápido não ver a
+      // cena teleportar nem esperar o dobro por ter pulado dois meses.
+      levarPara(destino, Math.min(0.9, 0.36 + distancia * 0.0006));
+    }
+
+    /* A RODA, quantizada: um clique é um mês, e o destino já nasce num mês. */
+    function naRoda(ev) {
+      if (!gatilho.isActive || ev.ctrlKey) return; // ctrl+roda é zoom, não é nosso
+
+      var delta = ev.deltaY;
+      if (ev.deltaMode === 1) delta *= 40;                  // por linha
+      else if (ev.deltaMode === 2) delta *= window.innerHeight; // por página
+      var sentido = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+      if (!sentido) return;
+
+      /* Nas pontas a roda volta a ser da PÁGINA. É assim que se entra e se sai
+         da seção sem ficar preso nela, e é o que mantém barato o custo de quem
+         só quer passar direto. */
+      var proximo = mesAlvo + sentido;
+      if (proximo < 0 || proximo > ULTIMO) return;
+
+      ev.preventDefault();
+
+      clearTimeout(limpaBuffer);
+      limpaBuffer = setTimeout(function () { buffer = 0; }, PAUSA);
+      if (buffer * sentido < 0) buffer = 0; // virou o sentido, recomeça
+      buffer += delta;
+      if (Math.abs(buffer) < LIMIAR) return;
+
+      /* UM passo por evento que cruza o limiar, sempre. Um evento gigante
+         (mouse configurado pra rolar por página) também vale um mês só,
+         porque a queixa dele é surpresa, não lentidão. Quem gira rápido manda
+         vários eventos e anda vários meses, e é assim que a saída continua
+         custando pouco. */
+      buffer = 0;
+      irParaMes(proximo);
+    }
+
+    window.addEventListener("wheel", naRoda, { passive: false });
+
+    function aoRolar() {
+      if (passoAtivo) return;
+      // Chegou aqui pelo dedo, pela barra de rolagem ou pelo teclado: o passo
+      // quantizado precisa saber de que mês ele sai da próxima vez.
+      mesAlvo = mesDoPx(window.scrollY);
+      clearTimeout(esperaAssentar);
+      esperaAssentar = setTimeout(assentar, 140);
+    }
+
+    /* Entradas CONTÍNUAS não têm clique nenhum pra quantizar: dedo no celular,
+       arrasto da barra de rolagem, teclado. Lá o certo é seguir o gesto e
+       assentar no mês mais próximo quando ele acaba, que é manipulação direta
+       e não surpreende. A RODA NUNCA CHEGA AQUI, porque é atendida antes, e é
+       por isso que ela não tem mais o puxão de correção. */
+    function assentar() {
+      if (passoAtivo || !gatilho.isActive) return;
+      var onde = window.scrollY;
+      if (onde <= gatilho.start || onde >= gatilho.end) return;
+      var destino = pxDoMes(mesDoPx(onde));
+      if (Math.abs(destino - onde) < 4) return;
+      levarPara(destino, 0.4);
     }
   }
 

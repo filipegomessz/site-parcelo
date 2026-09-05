@@ -1738,17 +1738,23 @@ a {
   align-content: center;
 }
 
-/* 100svh de palco mais a faixa que a rolagem percorre. A faixa é dividida em
-   cinco: o travamento e as quatro paradas. Com 200svh cada fatia fica em
-   torno de 180px, que são uma ou duas voltas de roda: ele pediu que cada
-   rolagem, no máximo duas, fizesse a tela mudar. Vinha de 340svh, onde cada
-   fatia custava 345px e ele precisava insistir pra acontecer alguma coisa.
+/* 100svh de palco mais a faixa que a rolagem percorre, agora dividida nos DOZE
+   MESES do ano (decisão dele em 05/09). Sobram 155svh para os onze intervalos,
+   o que dá ~101px por mês numa janela de 720: é de propósito quase exatamente
+   o que um clique de roda anda no Chrome. Assim a página se move a distância
+   que a pessoa espera de um clique, e ainda assim para sempre num mês.
 
-   ⚠️ Quem manda no ritmo aqui é a FAIXA, não a duração da animação: a
-   animação toca em tempo próprio (landing.js, `irPara`), e esta altura só
-   decide de quanto em quanto a próxima é disparada. */
+   Os 30svh do fim são o respiro depois de dezembro. Sem eles a última parada
+   cai no pixel exato em que o palco descola, e o resultado do ano inteiro
+   aparece e some no mesmo gesto.
+
+   ⚠️ Quem manda no ritmo NÃO é mais esta altura. Com a roda quantizada, um
+   clique é um mês venha o que vier (landing.js, `naRoda`); esta altura decide
+   só quantos pixels a página anda a cada passo, e o quanto um arrasto de dedo
+   percorre. Reclamação de "anda demais por clique" se conserta aqui;
+   "rápido demais" se conserta na duração de `irParaMes`. */
 .js .linha--viva {
-  min-height: 200svh;
+  min-height: 285svh;
 }
 
 .js .linha--viva .linha__palco {
@@ -2084,6 +2090,15 @@ a {
 
   .js .linha--viva .marcos {
     min-height: 4.5rem;
+  }
+
+  /* No celular não existe clique de roda pra quantizar: o dedo é entrada
+     contínua, e a seção só assenta no mês mais próximo quando ele solta. Por
+     isso aqui a faixa é maior: 260svh para os onze intervalos dá ~192px por
+     mês numa janela de 812, então um lance de polegar comum atravessa uns
+     cinco meses, e não o ano inteiro. */
+  .js .linha--viva {
+    min-height: 390svh;
   }
 }
 
