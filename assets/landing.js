@@ -25,6 +25,11 @@
     "(prefers-reduced-motion: reduce)"
   ).matches;
 
+  // Guardado no escopo do módulo porque a linha do tempo precisa dele pra
+  // assentar nas paradas: quem rola a página é o Lenis, e mandar a rolagem
+  // por fora dele não funciona.
+  var lenisAtivo = null;
+
   var temGsap = typeof window.gsap !== "undefined";
   var temScrollTrigger = typeof window.ScrollTrigger !== "undefined";
   var temLenis = typeof window.Lenis !== "undefined";
@@ -72,11 +77,31 @@
       syncTouch: false
     });
 
-    function quadro(tempo) {
-      lenis.raf(tempo);
-      requestAnimationFrame(quadro);
+    lenisAtivo = lenis;
+
+    /* O Lenis anda no relógio do GSAP, não num requestAnimationFrame próprio.
+
+       São dois donos da rolagem na mesma página: o Lenis, que decide onde a
+       página está, e o ScrollTrigger, que às vezes precisa MANDAR a página
+       pra algum lugar (é o que o `snap` da linha do tempo faz ao assentar numa
+       parada). Em relógios separados, um escreve a posição e o outro a
+       reescreve no quadro seguinte, e a página treme ou trava. No mesmo tick,
+       a ordem é sempre a mesma e a briga não existe.
+
+       `lagSmoothing(0)` desliga a compensação de engasgo do GSAP, que ao
+       detectar um quadro longo dá um salto pra "recuperar o atraso" e faz a
+       rolagem pular na mão de quem está rolando. */
+    if (temGsap) {
+      window.gsap.ticker.add(function (tempo) {
+        lenis.raf(tempo * 1000);
+      });
+      window.gsap.ticker.lagSmoothing(0);
+    } else {
+      (function quadro(tempo) {
+        lenis.raf(tempo);
+        requestAnimationFrame(quadro);
+      })(0);
     }
-    requestAnimationFrame(quadro);
 
     if (temScrollTrigger) {
       lenis.on("scroll", window.ScrollTrigger.update);
@@ -621,17 +646,20 @@
     escrever();
     gsap.ticker.add(escrever);
 
-    /* A timeline NÃO é presa à rolagem. Ela fica parada, e a rolagem só diz
-       PARA QUAL PARADA ir; a viagem entre duas paradas acontece no tempo dela.
+    /* A cena anda COM o dedo, e assenta sozinha nas paradas.
 
-       Isso foi decisão dele em 04/09, e veio de um teste: numa bancada onde
-       cada fase tocava sozinha, com o mesmo desenho que está aqui, ele disse
-       que era exatamente o que queria. O que estragava era o `scrub`, que
-       amarra cada quadro à posição do dedo: a animação passava a andar no
-       ritmo do gesto, acelerando, parando e arrastando junto com ele. Bonita
-       no papel, irregular na tela.
+       Duas tentativas anteriores erraram por lados opostos, e as duas eram
+       dele: presa à rolagem sem suavização, a animação copiava o gesto
+       irregular e ficava truncada; disparada por gatilho, tocava no ritmo
+       certo mas solta do gesto, e a queixa virou "rolo, nada acontece, e
+       depois parece que algo aconteceu sozinho".
 
-       Agora o gesto é um gatilho, não um manípulo. */
+       O que faltava não era escolher um dos dois: era juntar o acoplamento do
+       primeiro com o repouso limpo do segundo. `scrub` prende a cena ao dedo,
+       com um fio de inércia pra o pulso da roda não aparecer; `snap` faz a
+       rolagem assentar na parada mais próxima quando o dedo sai. Assim nunca
+       se para no meio de uma virada, que era o problema original da bolinha
+       entre dois meses. */
     var tl = gsap.timeline({ paused: true, defaults: { ease: CURVA.entrada } });
 
     /* O ROTEIRO, decidido por ele em 04/09 e afinado depois de rolar a seção:
@@ -808,56 +836,64 @@
          parada não cabe neste modelo. */
     });
 
-    /* ── Quem comanda: a rolagem escolhe a parada, o tempo faz a viagem ──
-       Uma faixa de rolagem por parada. Ao cruzar a faixa k, a cena viaja até
-       a parada k e para lá; voltando, desfaz na mesma medida. Como cada
-       viagem é um tween normal, ela sai sempre no ritmo desenhado, não no
-       ritmo do gesto. */
-    var atual = 0;
-    var viagem = null;
+    /* ── Quem comanda: o dedo, com um fio de inércia e repouso garantido ──
 
-    function irPara(k) {
-      k = Math.max(0, Math.min(k, paradas.length - 1));
-      if (k === atual) return;
-      atual = k;
+       `scrub: 0.35` é curto de propósito. Ele não existe pra atrasar a cena,
+       e sim pra o pulso da roda não aparecer quadro a quadro: a cena persegue
+       a posição do dedo e chega nela em pouco mais de um terço de segundo.
+       Acima disso já se sente como atraso, que é justamente a queixa.
 
-      var destino = paradas[k];
-      var distancia = Math.abs(destino - tl.time());
-      /* O DOBRO do tempo de antes: as barras e o fio da trilha corriam rápido
-         demais pra se acompanhar com o olho. A duração cresce com a distância
-         pra quem pula duas paradas de uma vez não esperar o dobro nem ver a
-         cena teleportar. */
-      var duracao = Math.min(1.1 + distancia * 1, 3);
-
-      // `tweenTo` é a API que move o playhead de uma timeline pausada.
-      // Animar a propriedade `time` com um gsap.to comum cria o tween mas não
-      // mexe na timeline: ela ficava parada no zero enquanto o tween corria.
-      if (viagem) viagem.kill();
-      viagem = tl.tweenTo(destino, {
-        duration: duracao,
-        ease: CURVA.entrada,
-        overwrite: true
-      });
-    }
-
-    paradas.forEach(function (quando, k) {
-      if (k === 0) return;
-      ST.create({
-        trigger: secao,
-        start: function () {
-          var faixa = secao.offsetHeight - window.innerHeight;
-          return "top top-=" + Math.round((faixa * k) / paradas.length);
-        },
-        onEnter: function () {
-          irPara(k);
-        },
-        onLeaveBack: function () {
-          irPara(k - 1);
-        }
-      });
+       `snap` leva a rolagem à parada mais próxima quando o dedo sai. É ele
+       que garante que ninguém fica parado no meio de uma virada, com a
+       bolinha entre dois meses ou uma barra pela metade. O atraso curto antes
+       de assentar existe pra não brigar com quem ainda está rolando. */
+    var duracaoTotal = tl.duration();
+    var pontos = paradas.map(function (t) {
+      return t / duracaoTotal;
     });
 
-    tl.time(0);
+    var gatilho = ST.create({
+      trigger: secao,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.35,
+      animation: tl,
+      onUpdate: agendarRepouso
+    });
+
+    /* O assentamento é feito na mão, e não pelo `snap` do ScrollTrigger, por
+       um motivo simples: quem rola esta página é o Lenis. O snap de fábrica
+       escreve a posição por fora dele, e o Lenis a devolve no quadro seguinte
+       — medido, a rolagem parava a 17px da parada e ficava lá. Pedindo ao
+       Lenis, quem move é quem manda, e o movimento sai suave de graça.
+
+       A espera de 130ms é o que distingue "parou de rolar" de "está no meio
+       do gesto". A folga de 0,004 evita o vaivém: assentar dispara rolagem,
+       que dispara este mesmo código de novo. */
+    var esperaRepouso = null;
+
+    function agendarRepouso() {
+      clearTimeout(esperaRepouso);
+      esperaRepouso = setTimeout(repousar, 130);
+    }
+
+    function repousar() {
+      var faixa = gatilho.end - gatilho.start;
+      var onde = gatilho.progress;
+      if (faixa <= 0 || onde <= 0 || onde >= 1) return;
+
+      var perto = pontos.reduce(function (a, b) {
+        return Math.abs(b - onde) < Math.abs(a - onde) ? b : a;
+      });
+      if (Math.abs(perto - onde) < 0.004) return;
+
+      var destino = gatilho.start + perto * faixa;
+      if (lenisAtivo) {
+        lenisAtivo.scrollTo(destino, { duration: 0.45 });
+      } else {
+        window.scrollTo({ top: destino, behavior: "smooth" });
+      }
+    }
   }
 
   /* =========================================================================
