@@ -534,6 +534,14 @@ a {
   .nav__links {
     display: none;
   }
+
+  /* 35px de altura é alvo de mouse, não de dedo: o mínimo que a Apple e a
+     Google pedem é 44. Este é o botão que converte, está sempre na tela e é o
+     único alvo da pílula depois que os links somem, então o espaço sobra.
+     0,88rem em cima e embaixo fecham os 44px. */
+  .nav__cta {
+    padding: 0.88rem 1.3rem;
+  }
 }
 
 /* --- Seções: o contêiner ---------------------------------------------- */
@@ -541,6 +549,21 @@ a {
   max-width: var(--largura);
   margin: 0 auto;
   padding: var(--e7) var(--margem);
+}
+
+/* Celular: o respiro de 6,5rem foi medido pra uma tela de 900px de altura, em
+   que ele é um oitavo da janela. Num telefone de 812 o mesmo valor vira um
+   quarto, e duas seções vizinhas somam 208px de nada entre um assunto e o
+   seguinte. 4rem mantém a pausa e devolve 80px por seção.
+
+   As três seções que trocam este valor por conta própria (dor, privacidade e
+   baixar, todas com --e8) estão consertadas cada uma no seu lugar, porque as
+   regras delas vêm depois desta e ganhariam por ordem. */
+@media (max-width: 59.98rem) {
+  .secao__interno {
+    padding-top: var(--e6);
+    padding-bottom: var(--e6);
+  }
 }
 
 /* --- Hero ------------------------------------------------------------------
@@ -592,10 +615,25 @@ a {
    um pouco pela borda, do jeito que a marca d'água do mês faz no app. Só a
    parte de cima aparece, desmanchando no fundo. */
 @media (max-width: 59.98rem) {
+  .secao--hero {
+    padding-top: 5.5rem;
+  }
+
+  .hero__grade {
+    gap: var(--e5);
+  }
+
+  /* O CORTE DO APARELHO É MEDIDO, NÃO CHUTADO. A máscara começa a apagar em
+     68% da altura; a 19rem isso cai em 207px, e os três totais do card de
+     vidro terminam em 216px. Ou seja: saudação, rótulo, número-herói, chips e
+     os três totais ficam inteiros e legíveis, e a lista de parcelas (que
+     começa em 236px) é o que se desmancha. A 30rem o aparelho custava 480px,
+     mais da metade de uma tela de telefone, pra mostrar de fininho uma lista
+     que ninguém lê. Mexeu na tela desenhada, refaça esta conta. */
   .hero__aparelho {
     width: min(16.5rem, 74%);
     margin-right: calc(-0.35 * var(--margem));
-    max-height: 30rem;
+    max-height: 19rem;
     overflow: hidden;
     -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
     mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
@@ -1164,6 +1202,25 @@ a {
   padding: 0.15rem 0;
 }
 
+/* Os três links do rodapé são de dedo tanto quanto o resto. Tinham 28px de
+   alvo e 8px de intervalo, ou seja, 36px de passo em que só 28 respondiam ao
+   toque. Com o intervalo em zero e 0,65rem de padding, o passo vira 44px e o
+   alvo é o passo inteiro: nada de buraco morto entre um link e o vizinho.
+   A fileira cresce uns 24px no total, que é o preço, e é barato.
+
+   "Excluir sua conta" é o link que mais precisa disto: quem procura por ele
+   já está irritado, e errar o toque em cima de "Política de Privacidade" é a
+   pior hora possível pra abrir a página errada. */
+@media (max-width: 59.98rem) {
+  .rodape__links {
+    gap: 0;
+  }
+
+  .rodape__links a {
+    padding: 0.65rem 0;
+  }
+}
+
 .rodape__contato {
   display: grid;
   gap: var(--e3);
@@ -1244,6 +1301,15 @@ a {
   align-content: end;
   gap: var(--e5);
   padding-top: var(--e8);
+}
+
+/* Esta regra precisa existir por causa da ORDEM: a de cima é tão específica
+   quanto a do celular lá em .secao__interno, e vem depois, então ganharia e o
+   telefone continuaria com 9rem de teto. */
+@media (max-width: 59.98rem) {
+  .dor__interno {
+    padding-top: var(--e6);
+  }
 }
 
 .dor__cabeca .subcopy {
@@ -1495,13 +1561,23 @@ a {
 }
 
 @media (max-width: 59.98rem) {
+  .como__grade {
+    gap: var(--e5);
+  }
+
+  /* AQUI O APARELHO NÃO SE DESMANCHA, ao contrário do hero, e o motivo é o
+     conteúdo. No hero o que ficava embaixo do corte era uma lista decorativa.
+     Aqui embaixo dele estão os dez meses acendendo em sequência (398 a 430px),
+     a linha "Começa em agosto e vai até maio" (439) e o botão "Adicionar
+     compra" (476), que é a última batida da animação. Com o corte em 30rem a
+     máscara começava a apagar em 326px: os meses chegavam quase invisíveis, o
+     resumo sumia e o botão nunca aparecia. Quer dizer que justamente a cena que
+     ilustra o "espalha as outras nove nos meses certos" da copy ao lado não
+     existia no telefone. O aparelho inteiro mede 537px, 57 a mais que o corte
+     que estava aqui, e mostra a cena até o fim. */
   .como__aparelho {
     width: min(16.5rem, 74%);
     margin-left: calc(-0.35 * var(--margem));
-    max-height: 30rem;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
   }
 }
 
@@ -2063,7 +2139,21 @@ a {
 
 /* Celular: tudo cabe numa tela de 640px sem esconder copy. */
 @media (max-width: 59.98rem) {
+  /* O `min-width: 0` conserta o pior defeito que a página tinha no telefone,
+     e vale a explicação inteira porque o sintoma não parecia com a causa.
+
+     O palco é um grid, e a coluna implícita dele nascia do MIN-CONTENT deste
+     filho. O min-content daqui era 422,75px numa janela de 375 (culpa do
+     `min-width: 8ch` dos dois números, abaixo), então o palco inteiro ficava
+     47px mais largo que a tela. O `overflow-x: clip` do html cortava a sobra
+     em silêncio: sumia o fim de cada linha da copy e o valor de TODAS as sete
+     parcelas, sem barra de rolagem nenhuma pra denunciar. A seção-assinatura
+     da página era ilegível no celular, e de fora não dava pra ver por quê.
+
+     Com o piso em zero a coluna passa a valer a largura do palco, que é a da
+     tela, e nenhum filho volta a mandar na largura da cena. */
   .js .linha--viva .linha__interno {
+    min-width: 0;
     padding-top: 4.5rem;
     padding-bottom: var(--e3);
     gap: var(--e3);
@@ -2091,8 +2181,32 @@ a {
     font-size: 0.78rem;
   }
 
+  /* A OUTRA METADE DO CONSERTO, e a causa de verdade do corte.
+
+     O `min-width: 8ch` lá de cima nunca foi a medida do texto que ele reserva.
+     `ch` é a largura do zero, que na Inter dá 0,66em, e "R$ 2.000" tem um
+     espaço e um ponto, que são estreitos: o texto mede 4,11em, e 8ch pedia
+     5,28em. No desktop sobra largura e ninguém percebe; num telefone de 375 as
+     duas colunas pediam 383px onde cabiam 335, e era isso que empurrava o
+     palco inteiro pra fora da tela.
+
+     A promessa do original continua de pé: a coluna nasce com o tamanho do
+     maior valor, então "R$ 0" virando "R$ 1.450" não dá solavanco lateral no
+     meio da virada. Só que agora a reserva está em em, que é a unidade que a
+     fonte manda, e com teto de 100%: numa tela menor do que a reserva, ela
+     cede em vez de empurrar. Um `minmax(0, 1fr)` de cada lado é o que deixa a
+     coluna aceitar esse teto.
+
+     A fonte cede 5% (34,7px para 32,8px num aparelho de 375) pra caber com
+     folga também nos 320px de um aparelho antigo, onde o valor ficava
+     encostado na borda da coluna. */
+  .linha__numeros {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
   .linha__numero strong {
-    font-size: clamp(2rem, 1rem + 5vw, 2.8rem);
+    font-size: clamp(1.9rem, 0.9rem + 4.9vw, 2.8rem);
+    min-width: min(4.3em, 100%);
   }
 
   .js .linha--viva .marcos li {
@@ -2140,6 +2254,18 @@ a {
   display: grid;
   align-content: end;
   padding-top: var(--e8);
+}
+
+/* Aqui o `min-height: 100svh` estava cobrando caro no telefone. O conteúdo da
+   seção mede 460px; com a tela inteira reservada e `align-content: end`, os
+   352px que sobravam viravam um vazio no TOPO, e quem rolava passava por uma
+   tela quase em branco antes da frase chegar. Numa tela larga isso é uma
+   composição; numa estreita é um buraco. Tirado o piso, a seção fecha em 652. */
+@media (max-width: 59.98rem) {
+  .privacidade__interno {
+    min-height: 0;
+    padding-top: var(--e6);
+  }
 }
 
 .privacidade__selos {
@@ -2645,6 +2771,18 @@ a {
   align-content: center;
   padding-top: var(--e8);
   padding-bottom: var(--e8);
+}
+
+/* O fecho não precisa de piso de altura no telefone: com 4rem em cima e
+   embaixo o bloco já fica sozinho na tela, que é o efeito que o 72svh
+   comprava. Com o piso, sobravam 147px divididos acima e abaixo do CTA, e o
+   botão de baixar ficava boiando longe do texto que pede pra baixar. */
+@media (max-width: 59.98rem) {
+  .baixar__interno {
+    min-height: 0;
+    padding-top: var(--e6);
+    padding-bottom: var(--e6);
+  }
 }
 
 .baixar__interno .lojas {
