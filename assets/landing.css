@@ -1738,13 +1738,9 @@ a {
   align-content: center;
 }
 
-/* A altura é a soma de quatro coisas, nesta ordem de cima pra baixo:
+/* A altura é a soma de três coisas, nesta ordem de cima pra baixo:
 
      100svh  o palco, que fica grudado
-      35svh  a TRAVA, antes de janeiro. Palco já grudado e janeiro parado, mas
-             a rolagem ainda não anima nada: é o que absorve a inércia de quem
-             chega embalado da seção de cima. Combina com o `onEnter` do
-             landing.js, que cata quem atravessa isto num lance só.
      155svh  os ONZE INTERVALOS entre os doze meses, ~101px cada numa janela
              de 720. É de propósito quase exatamente o que um clique de roda
              anda no Chrome, então a página se move a distância que a pessoa
@@ -1753,18 +1749,23 @@ a {
              exato em que o palco descola, e o resultado do ano inteiro aparece
              e some no mesmo gesto.
 
-   ⚠️ Mexeu aqui, confira o `start` e o `end` do gatilho no landing.js: a trava
-   e o respiro são recortados de dentro desta altura, e se a soma não fechar a
-   timeline passa a rodar com o palco já subindo. Foi esse o bug do "o site
-   volta a rolar em novembro".
+   ⚠️ NÃO ACRESCENTAR FAIXA MORTA ANTES DE JANEIRO. Tentei, 35svh de
+   absorvedor pra segurar quem chega embalado, e ele reprovou: "sair de janeiro
+   pra fevereiro demanda muita rolagem". Quem impede o gráfico de começar antes
+   é o `start: "top top"` com o palco grudado, e isso não custa pixel nenhum.
 
-   ⚠️ Quem manda no ritmo NÃO é mais esta altura. Com a roda quantizada, um
-   clique é um mês venha o que vier (landing.js, `naRoda`); esta altura decide
-   só quantos pixels a página anda a cada passo, e o quanto um arrasto de dedo
+   ⚠️ Mexeu aqui, confira o `end` do gatilho no landing.js: o respiro é
+   recortado de dentro desta altura, e se a soma não fechar a timeline passa a
+   rodar com o palco já subindo. Foi esse o bug do "o site volta a rolar em
+   novembro".
+
+   ⚠️ Quem manda no ritmo NÃO é esta altura. Com a roda quantizada, uma rolagem
+   é um mês venha o que vier (landing.js, `naRoda`); esta altura decide só
+   quantos pixels a página anda a cada passo, e o quanto um arrasto de dedo
    percorre. Reclamação de "anda demais por clique" se conserta aqui;
-   "rápido demais" se conserta na duração de `irParaMes`. */
+   "rápido demais" se conserta no RITMO da fila. */
 .js .linha--viva {
-  min-height: 320svh;
+  min-height: 285svh;
 }
 
 .js .linha--viva .linha__palco {
@@ -2104,11 +2105,11 @@ a {
 
   /* No celular não existe clique de roda pra quantizar: o dedo é entrada
      contínua, e a seção só assenta no mês mais próximo quando ele solta. Por
-     isso aqui a faixa é maior: tirados o palco, a trava e o respiro, sobram
-     255svh para os onze intervalos, ~188px por mês numa janela de 812. Um
-     lance de polegar comum atravessa uns cinco meses, e não o ano inteiro. */
+     isso aqui a faixa é maior: tirados o palco e o respiro, sobram 260svh para
+     os onze intervalos, ~192px por mês numa janela de 812. Um lance de polegar
+     comum atravessa uns cinco meses, e não o ano inteiro. */
   .js .linha--viva {
-    min-height: 420svh;
+    min-height: 390svh;
   }
 }
 

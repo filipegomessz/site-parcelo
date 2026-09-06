@@ -760,13 +760,27 @@
 
     /* ── Quem comanda ─────────────────────────────────────────────────────
 
-       A TRAVA, antes de janeiro. A pessoa chega na seção ainda rolando, com a
-       inércia da seção anterior, e sem isto o embalo já passava janeiro pra
-       fevereiro antes de ela ler o que estava na tela. Aqui o palco já está
-       grudado e janeiro parado, mas o gatilho ainda não começou: são ~250px
-       que servem de absorvedor. É o lugar certo pra isto, e o 6ca0b43 já
-       dizia: o travamento mora na FAIXA DE ROLAGEM antes do primeiro gatilho,
-       nunca dentro da timeline.
+       A FRONTEIRA É O QUE TRAVA, e ela não custa rolagem nenhuma. Dito por
+       ele em 05/09: "o importante da correção era não deixar o gráfico começar
+       antes e nem deixar o usuário sair do gráfico antes de ele terminar".
+
+       Quem garante as duas coisas já está aqui e é de graça. Não começar
+       antes: com `start: "top top"` o gatilho só liga quando o palco grudado
+       preenche a tela inteira, então a cena nunca anima meio de fora. Não sair
+       antes de terminar: dentro da seção a roda é atendida por `naRoda`, que
+       anda de mês em mês, e só devolve o controle pra página em janeiro
+       subindo ou em dezembro descendo.
+
+       ⚠️ NÃO PÔR FAIXA MORTA ANTES DE JANEIRO. Tentei, com 250px de
+       absorvedor, e ele reprovou: "sair de janeiro pra fevereiro demanda muita
+       rolagem". Faixa parada antes do gatilho é rolagem cobrada sem nada
+       acontecer, que é o defeito de sempre nesta seção.
+
+       ⚠️ NÃO PUXAR A ROLAGEM DE VOLTA NA ENTRADA. Tentei um `onEnter` que
+       parava no mês mais próximo, e ele reprovou: "rolando leve não saí nunca
+       da janeiro, parece que começa a ir mas volta imediatamente". Era isto:
+       ao cruzar a borda a pessoa era puxada pra ela de novo, entrava, era
+       puxada, e ficava presa no laço.
 
        O RESPIRO, depois de dezembro, porque a última parada não pode cair no
        pixel exato em que o palco descola: o resultado do ano inteiro
@@ -778,44 +792,29 @@
        para o lado contrário do esperado: `"bottom bottom-=216"` termina 216px
        DEPOIS, não antes, e a timeline seguia rodando com o palco já subindo.
        Por isso o recuo do fim é feito no lado do ELEMENTO. */
-    function trava() {
-      return Math.round(window.innerHeight * 0.35);
-    }
-
     function respiro() {
       return Math.round(window.innerHeight * 0.3);
     }
 
     var gatilho = ST.create({
       trigger: secao,
-      start: function () { return "top top-=" + trava(); },
+      start: "top top",
       end: function () { return "bottom-=" + respiro() + " bottom"; },
       scrub: 0.35,
       animation: tl,
-      onUpdate: aoRolar,
-      // A trava propriamente dita: ao cruzar a borda, a seção CATA quem chega
-      // embalado e para no mês mais próximo. Sem isto o absorvedor acima só
-      // adia o problema, porque um lance forte atravessa ele inteiro.
-      onEnter: pegarNoMes,
-      onEnterBack: pegarNoMes
+      onUpdate: aoRolar
     });
 
-    /* O ScrollTrigger pode disparar `onEnter` DURANTE o próprio `create`, se a
-       página já abrir com a rolagem dentro da seção. Nessa hora o `var gatilho`
-       ainda não recebeu o valor, e `faixa()` estouraria em cima de undefined. */
-    function pegarNoMes() {
-      if (!gatilho || faixa() <= 0) return;
-      irParaMes(mesDoPx(window.scrollY), 0.45);
-    }
-
-    var LIMIAR = 60;   // px de roda que valem um passo
-    var PAUSA = 320;   // quieto por isto, e o gesto recomeça a contar do zero
-    var buffer = 0;
+    var RUIDO = 4;      // px abaixo disso é tremor de dedo, não é gesto
+    var RITMO = 140;    // ms mínimos entre um mês e o outro
+    var FILA_MAX = 3;   // meses que uma rajada pode enfileirar
     var mesAlvo = 0;
     var passoAtivo = false;
-    var limpaBuffer = null;
     var esperaAssentar = null;
     var soltaPasso = null;
+    var pendente = 0;
+    var ultimoPasso = 0;
+    var timerFila = null;
 
     function faixa() { return gatilho.end - gatilho.start; }
 
@@ -857,37 +856,76 @@
       levarPara(destino, duracao || Math.min(0.9, 0.36 + distancia * 0.0006));
     }
 
-    /* A RODA, quantizada: um clique é um mês, e o destino já nasce num mês. */
+    /* A FILA. Todo evento de roda vale um mês, e o ritmo é que os separa.
+
+       ⚠️ AQUI MOROU UM DEFEITO FEIO, e vale saber por quê. Antes existia um
+       limiar de 60px acumulados, conferido DEPOIS do `preventDefault`: rolagem
+       leve não alcançava o limiar, então a página não andava nem trocava o
+       mês, e a seção travava de vez. Ele reportou como "rolando leve não saí
+       nunca da janeiro". Limiar de acumulação em cima de `preventDefault` é
+       sempre isso: se o gesto não alcança o limiar, ele some.
+
+       Agora nenhum evento se perde. O primeiro anda na hora, o que faz a
+       rolagem leve funcionar; os seguintes entram numa fila e saem a cada
+       RITMO, o que impede um lance de trackpad de varrer o ano. A fila tem
+       teto pra rajada não virar filme rodando sozinho depois do gesto. */
+    function pedirPasso(sentido) {
+      pendente += sentido;
+      escoarFila();
+    }
+
+    function escoarFila() {
+      clearTimeout(timerFila);
+      if (!pendente) return;
+      var agora = (window.performance || Date).now();
+      var espera = RITMO - (agora - ultimoPasso);
+      if (espera > 0) {
+        timerFila = setTimeout(escoarFila, espera);
+        return;
+      }
+      var sentido = pendente > 0 ? 1 : -1;
+      var proximo = mesAlvo + sentido;
+      pendente -= sentido;
+      if (proximo < 0 || proximo > ULTIMO) { pendente = 0; return; }
+      ultimoPasso = agora;
+      irParaMes(proximo);
+      if (pendente) escoarFila();
+    }
+
+    /* A RODA, quantizada: uma rolagem é um mês, e o destino já nasce num mês. */
     function naRoda(ev) {
-      if (!gatilho.isActive || ev.ctrlKey) return; // ctrl+roda é zoom, não é nosso
+      if (ev.ctrlKey) return; // ctrl+roda é zoom, não é nosso
+
+      /* A conta é feita na POSIÇÃO, não no `isActive` do ScrollTrigger. Ele só
+         vale depois que um ciclo de atualização rodou, e existem momentos em
+         que isso ainda não aconteceu: logo depois de um refresh, ao abrir a
+         página já com a rolagem dentro da seção, ou quando o navegador segura
+         o desenho. Nesses instantes `isActive` vem `undefined` e a roda ficava
+         solta bem no meio do gráfico. */
+      var onde = window.pageYOffset;
+      if (onde < gatilho.start || onde > gatilho.end) return;
 
       var delta = ev.deltaY;
-      if (ev.deltaMode === 1) delta *= 40;                  // por linha
-      else if (ev.deltaMode === 2) delta *= window.innerHeight; // por página
-      var sentido = delta > 0 ? 1 : delta < 0 ? -1 : 0;
-      if (!sentido) return;
+      if (ev.deltaMode === 1) delta *= 40;                      // por linha
+      else if (ev.deltaMode === 2) delta *= window.innerHeight;  // por página
+      if (Math.abs(delta) < RUIDO) return;
+      var sentido = delta > 0 ? 1 : -1;
 
-      /* Nas pontas a roda volta a ser da PÁGINA. É assim que se entra e se sai
-         da seção sem ficar preso nela, e é o que mantém barato o custo de quem
-         só quer passar direto. */
-      var proximo = mesAlvo + sentido;
-      if (proximo < 0 || proximo > ULTIMO) return;
+      /* De onde o passo sai: com a fila parada, do mês em que a rolagem está
+         DE VERDADE, e não do último alvo guardado. Sem isto, quem recarrega a
+         página no meio da seção dava o primeiro clique e voltava pra fevereiro,
+         porque `mesAlvo` ainda estava no zero. Com a fila andando, o próximo
+         sai do alvo, senão uma rajada pisa nela mesma. */
+      var daqui = passoAtivo || pendente ? mesAlvo : mesDoPx(onde);
+      mesAlvo = daqui;
+
+      /* Nas pontas a roda volta a ser da PÁGINA, e é só por aqui que se entra
+         e se sai. Enquanto o ano não acabou, a rolagem não escapa do gráfico:
+         é o "não deixar o usuário sair antes de ele terminar". */
+      if (daqui + sentido < 0 || daqui + sentido > ULTIMO) return;
 
       ev.preventDefault();
-
-      clearTimeout(limpaBuffer);
-      limpaBuffer = setTimeout(function () { buffer = 0; }, PAUSA);
-      if (buffer * sentido < 0) buffer = 0; // virou o sentido, recomeça
-      buffer += delta;
-      if (Math.abs(buffer) < LIMIAR) return;
-
-      /* UM passo por evento que cruza o limiar, sempre. Um evento gigante
-         (mouse configurado pra rolar por página) também vale um mês só,
-         porque a queixa dele é surpresa, não lentidão. Quem gira rápido manda
-         vários eventos e anda vários meses, e é assim que a saída continua
-         custando pouco. */
-      buffer = 0;
-      irParaMes(proximo);
+      if (Math.abs(pendente) < FILA_MAX) pedirPasso(sentido);
     }
 
     window.addEventListener("wheel", naRoda, { passive: false });
