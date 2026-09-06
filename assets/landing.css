@@ -1812,6 +1812,12 @@ a {
   display: grid;
   gap: var(--e4);
   align-content: center;
+  /* A cena vira CONTAINER pra os dois números poderem se medir por ela, em cqw,
+     em vez de por vw. É a mesma ideia do aparelho desenhado lá em cima, que
+     mede tudo pela própria largura: a janela não diz nada sobre o espaço que
+     esta coluna tem, e era exatamente essa confusão que estourava os números
+     pra fora da cena. */
+  container-type: inline-size;
 }
 
 /* A altura é a soma de três coisas, nesta ordem de cima pra baixo:
@@ -1854,6 +1860,12 @@ a {
 
 .js .linha--viva .linha__interno {
   width: 100%;
+  /* A trava: o palco é um grid, e a coluna implícita dele nascia do min-content
+     DESTE filho. Com o piso em zero, quem manda na largura da cena é o palco,
+     que é a tela, e nenhum conteúdo daqui de dentro volta a empurrar a seção
+     pra fora do viewport. Vale nas duas larguras, porque o defeito acontecia
+     nas duas. */
+  min-width: 0;
   display: grid;
   grid-template-areas:
     "texto"
@@ -1895,12 +1907,20 @@ a {
 }
 
 @media (min-width: 60rem) {
+  /* A CENA GANHOU LARGURA, e é devolução, não capricho. Com 1,1fr e 6,5rem de
+     corredor ela ficava com 532px enquanto os dois números pediam 793: o
+     desenho sempre quis uma cena mais larga do que a grade dava, e a diferença
+     saía por cima da margem (ou pela borda da tela, em notebook). Com 1,25fr e
+     4rem de corredor a cena vai a 597px e passa a conter o que mostra.
+
+     A coluna de texto cede 25px nisso, de 484 pra 459, que é 5%: o título e as
+     duas linhas de subcopy continuam quebrando igual. */
   .js .linha--viva .linha__interno {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
     grid-template-areas:
       "texto cena"
       "marcos cena";
-    gap: var(--e4) var(--e7);
+    gap: var(--e4) var(--e6);
     align-items: center;
   }
 
@@ -1939,7 +1959,10 @@ a {
 .linha__numeros {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* `1fr` puro tem mínimo automático de min-content, então a coluna se recusava
+     a encolher abaixo do que o número pedia e empurrava a cena inteira. Com o
+     mínimo em zero, quem manda na largura é a cena, e é o número que se ajusta. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--e3);
 }
 
@@ -1960,18 +1983,39 @@ a {
 /* Maiores desde que sobraram só 3 marcos: menos batidas, mais peso em cada
    número. É o que faz o salto de 2.000 pra zero dar na vista.
 
-   O min-width reserva o espaço do maior valor ("R$ 2.000", 8 caracteres) desde
-   o começo. Sem ele, "R$ 0" virando "R$ 1.450" empurrava a coluna e o gráfico
-   inteiro dava um solavanco lateral no meio da virada. Com tabular-nums todo
-   dígito tem a mesma largura, então 8ch é medida exata, não chute. */
+   A INTENÇÃO DO ORIGINAL CONTINUA INTEIRA, e vale repetir qual era: reservar o
+   espaço do maior valor desde o começo, senão "R$ 0" virando "R$ 1.450"
+   empurra a coluna e o gráfico dá um solavanco lateral no meio da virada.
+
+   ⚠️ O QUE ESTAVA ERRADO ERA A MEDIDA, e o erro custou caro. `min-width: 8ch`
+   parecia exato ("8 caracteres, e tabular-nums iguala os dígitos"), mas `ch` é
+   a largura do ZERO, 0,66em na Inter, e "R$ 2.000" tem um espaço e um ponto,
+   que são estreitos. O texto mede 4,11em; 8ch pedia 5,28em, quase 30% a mais
+   de coluna do que existe texto. Como `1fr` não encolhe abaixo do mínimo do
+   conteúdo, essa reserva inflada empurrava a cena inteira pra fora:
+     - no celular de 375 o palco ia a 423px e o `overflow-x: clip` comia a copy
+       e o valor das sete parcelas, sem barra de rolagem pra denunciar;
+     - no desktop a cena pedia 793px onde a coluna tem 597, e a sobra saía pela
+       direita. Acima de ~1642px ela caía na margem vazia e passava por
+       composição; em notebook de 1366 e 1440 saía PELA BORDA DA TELA.
+
+   Agora a reserva é `min(4.3em, 100%)`: 4,3em é a medida real do maior valor
+   com uma folga, e o teto de 100% faz a reserva CEDER em vez de empurrar
+   quando a coluna for menor que ela.
+
+   E o tamanho passou a se medir pela CENA (cqw), não pela janela (vw), que é o
+   que garante que os dois números cabem lado a lado em qualquer largura: cada
+   um tem (100cqw - 16px)/2, e 11cqw deixa ~7% de folga sobre isso da tela de
+   320px até a cena cheia. Mexeu no gap do .linha__numeros ou na proporção das
+   colunas do desktop, refaça esta conta. */
 .linha__numero strong {
-  font-size: clamp(2.4rem, 1.2rem + 4.4vw, 4.6rem);
+  font-size: clamp(1.9rem, 11cqw, 4.6rem);
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  min-width: 8ch;
+  min-width: min(4.3em, 100%);
 }
 
 .linha__numero--ganho .linha__rotulo {
@@ -2139,21 +2183,7 @@ a {
 
 /* Celular: tudo cabe numa tela de 640px sem esconder copy. */
 @media (max-width: 59.98rem) {
-  /* O `min-width: 0` conserta o pior defeito que a página tinha no telefone,
-     e vale a explicação inteira porque o sintoma não parecia com a causa.
-
-     O palco é um grid, e a coluna implícita dele nascia do MIN-CONTENT deste
-     filho. O min-content daqui era 422,75px numa janela de 375 (culpa do
-     `min-width: 8ch` dos dois números, abaixo), então o palco inteiro ficava
-     47px mais largo que a tela. O `overflow-x: clip` do html cortava a sobra
-     em silêncio: sumia o fim de cada linha da copy e o valor de TODAS as sete
-     parcelas, sem barra de rolagem nenhuma pra denunciar. A seção-assinatura
-     da página era ilegível no celular, e de fora não dava pra ver por quê.
-
-     Com o piso em zero a coluna passa a valer a largura do palco, que é a da
-     tela, e nenhum filho volta a mandar na largura da cena. */
   .js .linha--viva .linha__interno {
-    min-width: 0;
     padding-top: 4.5rem;
     padding-bottom: var(--e3);
     gap: var(--e3);
@@ -2181,33 +2211,10 @@ a {
     font-size: 0.78rem;
   }
 
-  /* A OUTRA METADE DO CONSERTO, e a causa de verdade do corte.
-
-     O `min-width: 8ch` lá de cima nunca foi a medida do texto que ele reserva.
-     `ch` é a largura do zero, que na Inter dá 0,66em, e "R$ 2.000" tem um
-     espaço e um ponto, que são estreitos: o texto mede 4,11em, e 8ch pedia
-     5,28em. No desktop sobra largura e ninguém percebe; num telefone de 375 as
-     duas colunas pediam 383px onde cabiam 335, e era isso que empurrava o
-     palco inteiro pra fora da tela.
-
-     A promessa do original continua de pé: a coluna nasce com o tamanho do
-     maior valor, então "R$ 0" virando "R$ 1.450" não dá solavanco lateral no
-     meio da virada. Só que agora a reserva está em em, que é a unidade que a
-     fonte manda, e com teto de 100%: numa tela menor do que a reserva, ela
-     cede em vez de empurrar. Um `minmax(0, 1fr)` de cada lado é o que deixa a
-     coluna aceitar esse teto.
-
-     A fonte cede 5% (34,7px para 32,8px num aparelho de 375) pra caber com
-     folga também nos 320px de um aparelho antigo, onde o valor ficava
-     encostado na borda da coluna. */
-  .linha__numeros {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .linha__numero strong {
-    font-size: clamp(1.9rem, 0.9rem + 4.9vw, 2.8rem);
-    min-width: min(4.3em, 100%);
-  }
+  /* Os dois números NÃO têm regra própria aqui, de propósito. O conserto do
+     corte mora na regra base (`min(4.3em, 100%)` de reserva e tamanho em cqw),
+     porque o mesmo defeito acontecia no desktop, e uma medida que se mede pela
+     cena já cobre as duas larguras sem duas contas pra manter em sincronia. */
 
   .js .linha--viva .marcos li {
     font-size: 1rem;

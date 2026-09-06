@@ -225,8 +225,16 @@ setTimeout(function () {
         relatório. Você abriu aquilo uma vez e nunca mais.</p>
       </article>
 
-      <p class="destaque golpe golpe--conta" data-revelar>E quem faz isso bem cobra por isso. A conta começa em
-      <strong>R$ 40 por mês</strong>.</p>
+      <!-- O <span> não é enfeite: ele conserta o ponto final órfão. O .golpe é
+           `display: grid`, e num grid CADA elemento filho vira um item, e cada
+           corrida de texto solta vira outro. Sem o span, esta frase virava TRÊS
+           itens empilhados (o texto, o <strong> e o "."), então o ponto caía
+           sozinho numa linha, 16px abaixo do número. Com o span há um item só,
+           e o conteúdo dele volta a fluir como frase: o número grande fica
+           inline e o ponto encosta nele. O `align-content: end` do card
+           continua valendo, porque quem se alinha é o span. -->
+      <p class="destaque golpe golpe--conta" data-revelar><span>E quem faz isso bem cobra por isso. A conta começa em
+      <strong>R$ 40 por mês</strong>.</span></p>
     </div>
   </div>
 </section>
