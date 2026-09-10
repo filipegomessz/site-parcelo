@@ -22,14 +22,22 @@ de cartão e contas recorrentes (pacote `br.com.parcelo`).
 ### 🔴 A regra mais importante
 
 **Push na `main` publica no ar imediatamente.** Não existe ambiente de teste,
-não existe revisão antes. Por isso:
+não existe revisão antes. Por isso, o fluxo aqui é este, e foi decidido pelo
+dono em 10/09/2026:
 
-> **Trabalhe em branch e abra Pull Request. Nunca faça push direto na `main`.**
-> Quem decide o que vai ao ar é o dono do projeto, sempre.
+> **Commite à vontade, direto na `main` local, sem perguntar.** A hora do commit
+> é julgamento seu, e commit não publica nada.
+> **`git push` é decisão dele, sempre, e pede autorização explícita a cada vez.**
+> Não existe Pull Request obrigatório aqui, e também não existe push por conta
+> própria.
 
-Antes de começar, confira também se a `main` local e a `origin/main` estão
-iguais. Já houve commit pronto no disco e não publicado; partir do remoto nesse
-estado significa trabalhar sobre código velho.
+Isso vale inclusive quando a única forma de entregar o seu trabalho for
+empurrando (agente rodando na nuvem, por exemplo): nesse caso, **pare e peça
+autorização antes**, dizendo o que cada commit faz.
+
+Antes de começar, confira se a `main` local e a `origin/main` estão iguais. Já
+houve commit pronto no disco e não publicado; partir do remoto nesse estado
+significa trabalhar sobre código velho.
 
 ---
 
