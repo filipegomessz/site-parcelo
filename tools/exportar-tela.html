@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<base href="../">
+<title>Exportar a tela da home</title>
+<link rel="stylesheet" href="assets/landing.css">
+<style>
+  /* --------------------------------------------------------------------------
+     Página de EXPORTAÇÃO, não é página do site. Ela existe para gerar a textura
+     da tela que o modelo 3D do Galaxy S25 Ultra usa no repositório
+     `site-parcelo-v2`, e por isso não tem nenhuma cópia da home dentro: ela
+     BUSCA o bloco `.tela--home` do `index.html` em tempo de execução. Enquanto
+     for assim, a textura não tem como divergir do que está no ar.
+
+     O quadro sai na proporção exata da malha `Phone_Display` do GLB
+     (74,85 x 160,05 mm, ou seja 384 x 821,13 dp), que é a mesma proporção do
+     encaixe medido em `renders/11-site-frame.json`. Por isso o palco reusa as
+     porcentagens do site: elas vieram da mesma medição.
+
+     Rodar: `node tools/exportar-tela.mjs`.
+     -------------------------------------------------------------------------- */
+  html, body { margin: 0; padding: 0; background: #000; }
+  body { display: block; }
+
+  #quadro {
+    position: relative;
+    overflow: hidden;
+    width: var(--largura-tela);
+    height: var(--altura-tela);
+  }
+
+  /* O palco é o mesmo container do site: a tela mede tudo em cqw a partir
+     dele, inclusive o feixe do aplicativo, que usa 1cqw direto. */
+  #palco {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--largura-tela) / 0.912983);
+    aspect-ratio: 1000 / 2057;
+    container-type: inline-size;
+  }
+
+  /* Sem o brilho que o site põe ATRÁS do aparelho: na cena 3D quem ilumina é
+     a cena. */
+  #palco::before { display: none; }
+
+  /* A tela encostada no canto, sem a matriz do encaixe e sem canto redondo: a
+     malha da tela já é arredondada, e canto vazado na textura viraria buraco. */
+  #vidro {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--largura-tela);
+    height: var(--altura-tela);
+    transform: none;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  /* Reflexo de vidro e varredura são do SITE, não do aplicativo. Assados na
+     textura, brigariam com a luz da cena 3D. */
+  #vidro::before, #vidro::after { content: none; }
+
+  /* Nenhuma animação pode estar no meio do caminho na hora da foto. */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+</style>
+</head>
+<body>
+  <div id="quadro"><div id="palco" class="aparelho"><div id="vidro" class="aparelho__vidro"></div></div></div>
+
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  /* 384 dp de largura. A escala 3 sai em 1152 x 2463, que é o que o GLB pede. */
+  const escala = Number(params.get('escala') || 3);
+  const LARGURA_DP = 384;
+  const PROPORCAO = 160.05 / 74.85;   /* a malha Phone_Display, em mm */
+
+  const largura = LARGURA_DP * escala;
+  const altura = largura * PROPORCAO;
+  document.documentElement.style.setProperty('--largura-tela', largura + 'px');
+  document.documentElement.style.setProperty('--altura-tela', altura + 'px');
+
+  const html = await (await fetch('index.html', { cache: 'no-store' })).text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const tela = doc.querySelector('.hero__aparelho .tela--home');
+  if (!tela) {
+    document.title = 'ERRO: .tela--home não achada no index.html';
+    document.body.innerHTML = '<p style="color:#fff;font:16px sans-serif">Não achei <code>.hero__aparelho .tela--home</code> no index.html.</p>';
+    return;
+  }
+
+  /* As imagens vêm com caminho relativo ao index.html, que está um nível acima:
+     o <base> desta página já resolve isso. */
+  document.getElementById('vidro').append(document.importNode(tela, true));
+
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(img => img.decode().catch(() => {})));
+  /* Duas voltas de layout antes de avisar que pode fotografar. */
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  document.documentElement.dataset.pronto = '1';
+  document.title = 'pronto ' + Math.round(largura) + 'x' + Math.round(altura);
+})();
+</script>
+</body>
+</html>

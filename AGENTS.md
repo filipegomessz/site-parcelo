@@ -52,7 +52,10 @@ significa trabalhar sobre código velho.
 | `CNAME`, `.nojekyll`, `robots.txt` | infraestrutura da hospedagem |
 
 Sobra para você: **`index.html`, `assets/landing.css`, `assets/landing.js`** e,
-quando houver imagem, `assets/img/`.
+quando houver imagem, `assets/img/`. Mais `tools/exportar-tela.html` e
+`tools/exportar-tela.mjs`, que são ferramenta de linha de comando, não página do
+site: geram a textura da tela para o modelo 3D (item 6). O que sai deles cai em
+`tools/saida/`, que o Git ignora.
 
 ---
 
@@ -165,6 +168,13 @@ botão, preserve o UTM dele.
   `lib/theme.dart`, em dp, e os ícones são o traçado real da fonte MaterialIcons
   que o Flutter embarca. 🔴 **Mexeu na home do aplicativo, mexe aqui**, senão a
   vitrine mostra uma tela que não existe mais.
+  🔴 **E, depois de mexer aqui, reexporte a textura:**
+  `node tools/exportar-tela.mjs`. O PNG que sai é a tela do modelo 3D no
+  repositório `site-parcelo-v2`, e é copiado para
+  `site-parcelo-v2/public/textures/tela-home.png` **à mão**, de propósito: o
+  crescimento em duas telas diferentes começa quando cada repositório passa a
+  ter a sua. Esta é a fonte, a de lá é cópia carimbada. Detalhe no
+  `LEIA.md` que fica ao lado do PNG.
 - **A segunda tela (a folha "Nova compra parcelada", em Como funciona) ainda é
   a reserva desenhada**, em em, e ganhou a mesma moldura. Quando ela for
   reproduzida a partir de `lib/screens/add_sheets.dart`, o CSS de
