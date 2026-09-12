@@ -102,62 +102,153 @@ setTimeout(function () {
         <p class="nota" data-hero="nota">Grátis pra começar. R$ 4,99 por mês se quiser tudo.</p>
       </div>
 
-      <!-- MOCKUP HÍBRIDO. A foto real entra em assets/img/ quando ele mandar.
-           Até lá, a tela "Meu mês" está desenhada em HTML/CSS aqui dentro,
-           copiando a gramática do app (saudação, marca d'água do mês vazando
-           pela direita, rótulo em caixa alta sobre o número-herói, card de
-           vidro com os três totais). Números coerentes com a linha do tempo
-           da seção 5: as 7 parcelas somam R$ 2.000 em janeiro, e até junho
-           acabam notebook, viagem e geladeira, que juntas devolvem R$ 1.450
-           por mês. Com assinaturas e contas o mês fecha em 2.220. Mexeu lá,
-           mexe aqui: são as mesmas parcelas, com os mesmos valores e na mesma
-           ordem de término. As contagens ("4 de 5") batem com o mês em que
-           cada uma acaba lá embaixo: quanto falta depois de janeiro é igual ao
-           data-fim dela.
+      <!-- O APARELHO. A moldura é um render do modelo 3D do Galaxy S25 Ultra
+           (o projeto mora em site-parcelo-v2, e o script que gera esta imagem
+           é outputs/galaxy-s25-ultra/source/render_site_frame.py). A tela é
+           HTML, encaixada por uma matriz medida pelo próprio render, então as
+           duas giram juntas quando o hero inclina o aparelho.
 
-           PRA TROCAR PELA FOTO: substitua o <div class="tela"> inteiro por
-           <img class="tela__foto" src="assets/img/meu-mes.png" alt="">.
-           A moldura, o reflexo do feixe e a varredura de luz continuam
-           iguais, porque moram na .aparelho__vidro e não na tela. -->
+           A TELA NÃO É INVENTADA. É a home do aplicativo (a aba Mês)
+           reproduzida a partir de lib/screens/month_screen.dart, com as
+           medidas em dp do Android e os ícones extraídos da fonte
+           MaterialIcons que o Flutter embarca. Os valores são os de um
+           aparelho de demonstração, conferidos contra um print do dono.
+
+           ⚠️ MEXEU NA HOME DO APLICATIVO, MEXE AQUI. Esta tela é cópia, não
+           espelho vivo, e uma cópia velha vira propaganda enganosa.
+
+           Os data-entrada são a cascata de entrada do próprio aplicativo, em
+           milissegundos: é o Entrance(delayMs:) de cada bloco da home. -->
       <div class="hero__aparelho">
         <figure class="aparelho" data-tela="meu-mes" data-hero="aparelho" aria-hidden="true">
+          <img class="aparelho__corpo" src="assets/img/aparelho-frente.webp" alt="" width="1000" height="2057" fetchpriority="high" decoding="async">
           <div class="aparelho__vidro">
-            <div class="tela tela--meu-mes">
-              <div class="tela__status">
-                <span>19:32</span>
-                <span class="tela__sinais"><i></i><i></i><i></i></span>
+            <div class="tela tela--home">
+              <span class="tela__luz"></span>
+
+              <div class="tela__sistema">
+                <span>01:38</span>
+                <span class="tela__sinais">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="#eaf3ed" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5l6 6M21.5 8.5l-6 6" stroke="#eaf3ed" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="#eaf3ed" aria-hidden="true"><path d="M12 21l3.5-4.4a5.6 5.6 0 0 0-7 0L12 21zm0-8.2c1.9 0 3.6.7 4.9 1.8l1.8-2.2A10.7 10.7 0 0 0 12 9.8c-2.6 0-5 .9-6.7 2.6l1.8 2.2a7.6 7.6 0 0 1 4.9-1.8zM12 5C8.1 5 4.6 6.5 2 8.9l1.8 2.2A13.7 13.7 0 0 1 12 8c3.2 0 6.1 1.2 8.2 3.1L22 8.9A15.7 15.7 0 0 0 12 5z"/></svg>
+                  <span class="tela__antena"><i></i><i></i><i></i><i></i></span>
+                  <span class="tela__pilha">78</span>
+                </span>
               </div>
-              <p class="tela__marca-dagua">JANEIRO</p>
-              <div class="tela__cabecalho">
-                <span class="tela__menu"><i></i><i></i><i></i></span>
-                <span class="tela__ola">Olá, você</span>
+
+              <div class="app">
+                <div class="app__topo" data-entrada="0">
+                  <span class="app__menu"><i></i><i></i><i></i></span>
+                  <span class="app__ola">Olá, João</span>
+                  <img class="app__avatar" src="assets/img/avatar-joao.webp" alt="" width="128" height="128" loading="lazy" decoding="async">
+                </div>
+
+                <div class="app__banda">
+                  <div class="app__mes" data-entrada="70">
+                    <div class="app__mes-pilha">
+                      <span class="app__mes-palavra">SETEMBRO</span>
+                      <span class="app__mes-frase">COMPROMETIDO EM</span>
+                    </div>
+                    <p class="app__valor" data-contador="283347">R$ 2.833<span class="app__centavos">,47</span></p>
+                  </div>
+
+                  <div class="app__pilula" data-entrada="140">
+                    <div class="app__vidro">
+                      <div class="app__coluna">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.03 3.97L3.97 3.97C2.89 3.97 1.99 4.86 1.99 5.99L1.99 18.01C1.99 19.14 2.89 20.03 3.97 20.03L20.03 20.03C21.11 20.03 22.01 19.14 22.01 18.01L22.01 5.99C22.01 4.86 21.11 3.97 20.03 3.97ZM20.03 18.01L3.97 18.01L3.97 12L20.03 12L20.03 18.01ZM20.03 8.01L3.97 8.01L3.97 5.99L20.03 5.99L20.03 8.01Z"/></svg>
+                        <p class="app__rotulo">PARCELAS</p>
+                        <p class="app__total" style="--cabe: 0.989">R$ 616,67</p>
+                      </div>
+                      <span class="app__fio"></span>
+                      <div class="app__coluna">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.99L12 8.99L15.99 5L12 0.96L12 3.97C7.58 3.97 3.97 7.58 3.97 12C3.97 13.55 4.44 15.05 5.23 16.28L6.69 14.82C6.22 13.97 5.99 13.03 5.99 12C5.99 8.66 8.66 5.99 12 5.99ZM18.77 7.72L17.31 9.18C17.73 10.03 18.01 10.97 18.01 12C18.01 15.34 15.34 18.01 12 18.01L12 15.01L8.01 19L12 23.04L12 20.03C16.42 20.03 20.03 16.42 20.03 12C20.03 10.45 19.56 8.95 18.77 7.72Z"/></svg>
+                        <p class="app__rotulo">ASSINATURAS</p>
+                        <p class="app__total" style="--cabe: 0.989">R$ 196,80</p>
+                      </div>
+                      <span class="app__fio"></span>
+                      <div class="app__coluna">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.52 3.5L18.01 1.99L16.51 3.5L15.01 1.99L13.5 3.5L12 1.99L10.5 3.5L8.99 1.99L7.49 3.5L5.99 1.99L5.99 15.99L2.98 15.99L2.98 19C2.98 20.69 4.34 22.01 5.99 22.01L18.01 22.01C19.66 22.01 21.02 20.69 21.02 19L21.02 1.99L19.52 3.5ZM19 19C19 19.56 18.58 20.03 18.01 20.03C17.45 20.03 17.03 19.56 17.03 19L17.03 15.99L8.01 15.99L8.01 5L19 5L19 19ZM8.99 6.97L15.01 6.97L15.01 8.99L8.99 8.99L8.99 6.97ZM15.99 6.97L18.01 6.97L18.01 8.99L15.99 8.99L15.99 6.97ZM8.99 9.98L15.01 9.98L15.01 12L8.99 12L8.99 9.98ZM15.99 9.98L18.01 9.98L18.01 12L15.99 12L15.99 9.98Z"/></svg>
+                        <p class="app__rotulo">CONTAS</p>
+                        <p class="app__total" style="--cabe: 0.844"><span class="app__quase">≈ </span>R$ 2.020,00</p>
+                      </div>
+                    </div>
+                    <div class="app__bolinhas">
+                      <span class="app__bolinha--aqui"><i></i></span>
+                      <span><i></i></span>
+                    </div>
+                  </div>
+
+                  <p class="app__noticia" data-entrada="210">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8.99L20.27 6.22L23.04 5L20.27 3.73L19 0.96L17.78 3.73L15.01 5L17.78 6.22L19 8.99ZM19 15.01L17.78 17.78L15.01 19L17.78 20.27L19 23.04L20.27 20.27L23.04 19L20.27 17.78L19 15.01ZM11.48 9.51L8.99 3.97L6.5 9.51L0.96 12L6.5 14.49L8.99 20.03L11.48 14.49L17.03 12L11.48 9.51ZM9.98 12.99L8.99 15.19L8.01 12.99L5.8 12L8.01 11.01L8.99 8.81L9.98 11.01L12.19 12L9.98 12.99Z"/></svg>
+                    <span>A parcela de <b>Protetor solar</b> acaba em setembro. Você libera <em>R$ 80,00/mês</em>.</span>
+                  </p>
+
+                  <div class="app__respiro"></div>
+                  <p class="app__panorama" data-entrada="280">PANORAMA</p>
+                </div>
+
+                <div class="app__horizonte" data-entrada="280">
+                  <svg viewBox="0 0 384 180" preserveAspectRatio="none" focusable="false" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="massa" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#00c86f" stop-opacity=".30"/>
+                        <stop offset="1" stop-color="#00c86f" stop-opacity="0"/>
+                      </linearGradient>
+                      <linearGradient id="adiante" gradientUnits="userSpaceOnUse" x1="192" y1="0" x2="384" y2="0">
+                        <stop offset="0" stop-color="#00c86f" stop-opacity=".55"/>
+                        <stop offset="1" stop-color="#00c86f" stop-opacity="0"/>
+                      </linearGradient>
+                      <linearGradient id="facho" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#00e884" stop-opacity="0"/>
+                        <stop offset="1" stop-color="#00e884" stop-opacity=".5"/>
+                      </linearGradient>
+                      <filter id="difuso3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5"/></filter>
+                      <filter id="difuso4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+                    </defs>
+                    <path d="M27.43 47.92C36.57 47.67 64 45.89 82.29 46.4C100.57 46.91 118.86 56.03 137.14 50.96C155.43 45.89 182.86 21.83 192 16L192 180L27.43 180Z" fill="url(#massa)"/>
+                    <path d="M192 16C201.14 16.63 228.57 19.09 246.86 19.8C265.14 20.51 283.43 20.13 301.71 20.26C320 20.38 347.43 20.51 356.57 20.56L384 20.56" fill="none" stroke="url(#adiante)" stroke-width="2.2" stroke-linecap="round"/>
+                    <path d="M27.43 47.92C36.57 47.67 64 45.89 82.29 46.4C100.57 46.91 118.86 56.03 137.14 50.96C155.43 45.89 182.86 21.83 192 16" fill="none" stroke="#00c86f" stroke-opacity=".13" stroke-width="8" stroke-linecap="round"/>
+                    <path class="app__traco" d="M27.43 47.92C36.57 47.67 64 45.89 82.29 46.4C100.57 46.91 118.86 56.03 137.14 50.96C155.43 45.89 182.86 21.83 192 16" fill="none" stroke="#00c86f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="190" y="0" width="4" height="16" fill="url(#facho)" filter="url(#difuso3)"/>
+                    <circle class="app__no-halo" cx="192" cy="16" r="11.5" fill="#00e884" fill-opacity=".36" filter="url(#difuso4)"/>
+                    <circle cx="192" cy="16" r="4" fill="#00e884"/>
+                  </svg>
+                  <div class="app__meses">
+                    <span>jun</span><span>jul</span><span>ago</span>
+                    <span class="app__mes-agora">SET</span>
+                    <span>out</span><span>nov</span><span>dez</span>
+                  </div>
+                </div>
+
+                <div class="app__rodape"></div>
               </div>
-              <p class="tela__rotulo">Comprometido este mês</p>
-              <p class="tela__numero">
-                <span class="tela__moeda">R$</span><span class="tela__reais" data-contador="2220">2.220</span><span class="tela__centavos">,00</span>
-              </p>
-              <p class="tela__chips">
-                <span class="tela__chip tela__chip--menta">Libera R$ 1.450 em junho</span>
-                <span class="tela__chip">7 parcelas correndo</span>
-              </p>
-              <div class="tela__vidro">
-                <div><span class="tela__vidro-rotulo">Parcelas</span><strong>R$ 2.000,00</strong></div>
-                <div><span class="tela__vidro-rotulo">Assinaturas</span><strong>R$ 129,80</strong></div>
-                <div><span class="tela__vidro-rotulo">Contas</span><strong>R$ 90,20</strong></div>
-              </div>
-              <p class="tela__rotulo tela__rotulo--lista">Parcelas do mês</p>
-              <ul class="tela__lista">
-                <li class="tela__lista--acabando"><span class="tela__nome">Notebook</span><span class="tela__meta">4 de 5, acaba em fevereiro</span><strong>R$ 300,00</strong></li>
-                <li><span class="tela__nome">Viagem</span><span class="tela__meta">6 de 9</span><strong>R$ 550,00</strong></li>
-                <li><span class="tela__nome">Geladeira</span><span class="tela__meta">6 de 11</span><strong>R$ 600,00</strong></li>
-                <li><span class="tela__nome">Sofá</span><span class="tela__meta">5 de 12</span><strong>R$ 170,00</strong></li>
-              </ul>
-              <div class="tela__barra">
-                <span class="tela__barra--ativa">Mês</span>
-                <span>Parcelas</span>
-                <span>Assinaturas</span>
-                <span>Contas</span>
-              </div>
+
+              <nav class="app__nav" data-entrada="0">
+                <div class="app__nav-vidro">
+                  <span class="app__aba app__aba--aqui">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.03 2.98L19 2.98L19 0.96L17.03 0.96L17.03 2.98L6.97 2.98L6.97 0.96L5 0.96L5 2.98L3.97 2.98C2.89 2.98 1.99 3.87 1.99 5L1.99 21.02C1.99 22.1 2.89 23.04 3.97 23.04L20.03 23.04C21.11 23.04 22.01 22.1 22.01 21.02L22.01 5C22.01 3.87 21.11 2.98 20.03 2.98ZM20.03 21.02L3.97 21.02L3.97 8.01L20.03 8.01L20.03 21.02Z"/></svg>
+                    <span>Mês</span>
+                  </span>
+                  <span class="app__aba">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.03 3.97L3.97 3.97C2.89 3.97 1.99 4.86 1.99 5.99L1.99 18.01C1.99 19.14 2.89 20.03 3.97 20.03L20.03 20.03C21.11 20.03 22.01 19.14 22.01 18.01L22.01 5.99C22.01 4.86 21.11 3.97 20.03 3.97ZM20.03 18.01L3.97 18.01L3.97 12L20.03 12L20.03 18.01ZM20.03 8.01L3.97 8.01L3.97 5.99L20.03 5.99L20.03 8.01Z"/></svg>
+                    <span>Parcelas</span>
+                  </span>
+                  <span class="app__vao"></span>
+                  <span class="app__aba">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.99L12 8.99L15.99 5L12 0.96L12 3.97C7.58 3.97 3.97 7.58 3.97 12C3.97 13.55 4.44 15.05 5.23 16.28L6.69 14.82C6.22 13.97 5.99 13.03 5.99 12C5.99 8.66 8.66 5.99 12 5.99ZM18.77 7.72L17.31 9.18C17.73 10.03 18.01 10.97 18.01 12C18.01 15.34 15.34 18.01 12 18.01L12 15.01L8.01 19L12 23.04L12 20.03C16.42 20.03 20.03 16.42 20.03 12C20.03 10.45 19.56 8.95 18.77 7.72Z"/></svg>
+                    <span>Assinat.</span>
+                  </span>
+                  <span class="app__aba">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.52 3.5L18.01 1.99L16.51 3.5L15.01 1.99L13.5 3.5L12 1.99L10.5 3.5L8.99 1.99L7.49 3.5L5.99 1.99L5.99 15.99L2.98 15.99L2.98 19C2.98 20.69 4.34 22.01 5.99 22.01L18.01 22.01C19.66 22.01 21.02 20.69 21.02 19L21.02 1.99L19.52 3.5ZM15.01 20.03L5.99 20.03C5.42 20.03 5 19.56 5 19L5 18.01L15.01 18.01L15.01 20.03ZM19 19C19 19.56 18.58 20.03 18.01 20.03C17.45 20.03 17.03 19.56 17.03 19L17.03 15.99L8.01 15.99L8.01 5L19 5L19 19ZM8.99 6.97L15.01 6.97L15.01 8.99L8.99 8.99L8.99 6.97ZM15.99 6.97L18.01 6.97L18.01 8.99L15.99 8.99L15.99 6.97ZM8.99 9.98L15.01 9.98L15.01 12L8.99 12L8.99 9.98ZM15.99 9.98L18.01 9.98L18.01 12L15.99 12L15.99 9.98Z"/></svg>
+                    <span>Contas</span>
+                  </span>
+                </div>
+                <span class="app__mais">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12.99L12.99 12.99L12.99 19L11.01 19L11.01 12.99L5 12.99L5 11.01L11.01 11.01L11.01 5L12.99 5L12.99 11.01L19 11.01L19 12.99Z"/></svg>
+                </span>
+              </nav>
+
+              <span class="app__gesto"></span>
             </div>
           </div>
         </figure>
@@ -268,11 +359,19 @@ setTimeout(function () {
            mesma do hero: R$ 2.200 em 10x de R$ 220, primeira parcela em agosto. -->
       <div class="como__aparelho">
         <figure class="aparelho" data-tela="lancamento" aria-hidden="true">
+          <img class="aparelho__corpo" src="assets/img/aparelho-frente.webp" alt="" width="1000" height="2057" loading="lazy" decoding="async">
           <div class="aparelho__vidro">
+            <!-- Esta folha ainda é a reserva desenhada, não reprodução do
+                 código como a home do hero. Quando ela for reproduzida a
+                 partir de lib/screens/add_sheets.dart, o CSS de
+                 .tela--lancamento sai inteiro. -->
             <div class="tela tela--lancamento">
-              <div class="tela__status">
+              <div class="tela__sistema">
                 <span>19:34</span>
-                <span class="tela__sinais"><i></i><i></i><i></i></span>
+                <span class="tela__sinais">
+                  <span class="tela__antena"><i></i><i></i><i></i><i></i></span>
+                  <span class="tela__pilha">64</span>
+                </span>
               </div>
               <div class="tela__folha">
                 <p class="tela__folha-titulo">Nova compra parcelada</p>

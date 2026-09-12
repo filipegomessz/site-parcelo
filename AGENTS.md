@@ -85,8 +85,9 @@ aplicativo **e o site**. Ou seja:
 - ✅ Precisa de outra biblioteca? **Pergunte antes.** Ela tem que ser
   versionada aqui primeiro.
 
-A página inteira carrega hoje com **6 requisições, todas locais**. Se uma
-alteração sua adicionar host externo, ela está errada.
+A página inteira carrega hoje com **8 requisições, todas locais** (a fonte, o
+CSS, três bibliotecas, o `landing.js` e duas imagens: a moldura do aparelho e o
+avatar da tela). Se uma alteração sua adicionar host externo, ela está errada.
 
 A única medição que existe é **UTM nos links da Play**, sem script e sem cookie.
 São cinco campanhas distintas (`lp-nav`, `lp-hero`, `lp-preco-gratis`,
@@ -152,9 +153,22 @@ botão, preserve o UTM dele.
   **"não deixar o gráfico começar antes e nem deixar o usuário sair do gráfico
   antes de ele terminar"**. É fronteira, não distância. Resolver isso com mais
   rolagem foi reprovado todas as vezes.
-- **As telas de celular são desenhadas em HTML/CSS** como reserva, copiando a
-  gramática real do aplicativo. A foto real entra por cima quando existir:
-  troca-se o `<div class="tela">` por `<img class="tela__foto">` e a moldura fica.
+- **O aparelho do hero é meio render, meio HTML.** A moldura
+  (`assets/img/aparelho-frente.webp`) é um render ortogonal do modelo 3D do
+  Galaxy S25 Ultra que mora no repositório `site-parcelo-v2`, feito no ângulo
+  de repouso pelo script `outputs/galaxy-s25-ultra/source/render_site_frame.py`.
+  A tela é DOM, encaixada nela por uma matriz que o próprio render mede e grava
+  em `renders/11-site-frame.json`. Mexeu no ângulo, roda o script de novo e
+  traz a matriz nova pro `.aparelho__vidro`.
+- **A tela do hero é a home do aplicativo reproduzida A PARTIR DO CÓDIGO**, não
+  desenhada de memória: as medidas saem de `lib/screens/month_screen.dart` e de
+  `lib/theme.dart`, em dp, e os ícones são o traçado real da fonte MaterialIcons
+  que o Flutter embarca. 🔴 **Mexeu na home do aplicativo, mexe aqui**, senão a
+  vitrine mostra uma tela que não existe mais.
+- **A segunda tela (a folha "Nova compra parcelada", em Como funciona) ainda é
+  a reserva desenhada**, em em, e ganhou a mesma moldura. Quando ela for
+  reproduzida a partir de `lib/screens/add_sheets.dart`, o CSS de
+  `.tela--lancamento` sai inteiro.
 - **Identidade:** fundo `#0a1b13`, cards `#13291f`, divisor `#1e3a2c`, texto
   `#fff`, apagado `#93ac9f`, menta `#00c86f`, feixe `#00e884`. Alinhado à
   esquerda, rótulo em caixa alta menta sobre número grande, raio 26 nos cards,
@@ -194,8 +208,12 @@ os scripts não rodam direito e nenhuma animação aparece.
 1. **`assets/img/og.png` (1200x630) não existe.** Por isso a tag `og:image` está
    fora do HTML de propósito, com comentário no lugar. Imagem de OG quebrada é
    pior que nenhuma. A tag entra junto com o arquivo.
-2. **Não há screenshot real do aplicativo** em `assets/img/`. As telas desenhadas
-   seguem valendo até as fotos chegarem.
+2. **Continua não havendo screenshot real do aplicativo** em `assets/img/`, e
+   nem precisa: a tela do hero é reprodução em HTML feita a partir do código do
+   aplicativo, o que sai nítido em qualquer densidade e continua editável. O que
+   veio de imagem foi só o avatar (`avatar-joao.webp`), recortado de um print de
+   conta de demonstração. A folha de "Como funciona" ainda espera a reprodução
+   dela, a partir de `lib/screens/add_sheets.dart`.
 3. **A descrição de "Compromissos informais"** na seção "Vem por aí" é
    interpretação, ainda não confirmada pelo dono. Está marcada por comentário no
    HTML.

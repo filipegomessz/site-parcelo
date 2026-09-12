@@ -57,7 +57,14 @@
 
   // Inclinação de repouso do aparelho: virado de leve pro texto, como se
   // estivesse apoiado na mesa olhando pra quem lê.
-  var REPOUSO = { rotationY: -10, rotationX: 3 };
+  //
+  // 🔑 Os -10 e os 3 saíram daqui e foram PARA DENTRO DA IMAGEM: a moldura é
+  // um render do modelo 3D já nesse ângulo, e por isso o repouso do CSS é
+  // zero. Quem gira agora só acrescenta ou tira alguns graus por cima do que
+  // está pintado. Mexeu num, mexeu no outro: o ângulo do render está em
+  // outputs/galaxy-s25-ultra/source/render_site_frame.py, no CSS_ROT_Y e no
+  // CSS_ROT_X, e ele reescreve a matriz que o landing.css usa.
+  var REPOUSO = { rotationY: 0, rotationX: 0 };
 
   /* --- Rolagem suave -------------------------------------------------------
      Lenis só entra se a pessoa não pediu movimento reduzido. Com ele desligado
@@ -372,15 +379,36 @@
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
-  function contar(el) {
+  /* O número-herói da tela do aplicativo subindo, com os centavos menores.
+     É o AnimatedMoney do Parcelô: 900ms (Motion.hero) na curva easeOutExpo
+     (Motion.settle), e o mesmo moneySpan, que separa os reais dos centavos e
+     desenha os centavos a 52% do corpo. O data-contador vem em CENTAVOS,
+     porque no aplicativo dinheiro é int e nunca float.
+
+     O DOM é montado uma vez e só o texto dos dois nós muda a cada quadro:
+     escrever innerHTML setenta vezes por segundo dentro de um elemento que
+     está sob transform seria repintar a tela inteira à toa. */
+  function contarDinheiro(el) {
     var alvo = parseInt(el.getAttribute("data-contador"), 10) || 0;
+    var reais = document.createTextNode("");
+    var centavos = document.createElement("span");
+    centavos.className = "app__centavos";
+    el.textContent = "";
+    el.appendChild(reais);
+    el.appendChild(centavos);
+
     var estado = { v: 0 };
+    function escrever(cents) {
+      reais.nodeValue = "R$ " + formatarMilhar(Math.floor(cents / 100));
+      centavos.textContent = "," + String(cents % 100).padStart(2, "0");
+    }
+    escrever(0);
     return window.gsap.to(estado, {
       v: alvo,
-      duration: 1.7,
-      ease: "power3.out",
+      duration: 0.9,
+      ease: "expo.out",
       onUpdate: function () {
-        el.textContent = formatarMilhar(Math.round(estado.v));
+        escrever(Math.round(estado.v));
       }
     });
   }
@@ -412,9 +440,12 @@
 
     var palavras = titulo ? partirEmPalavras(titulo) : [];
     var botoes = lojas ? Array.prototype.slice.call(lojas.children) : [];
-    var linhas = Array.prototype.slice.call(
-      hero.querySelectorAll(".tela__vidro > div, .tela__lista li, .tela__chips > *")
-    );
+    // A cascata da tela é a DO APLICATIVO: cada bloco da home entra com o
+    // atraso que o Entrance(delayMs:) dele usa (0, 70, 140, 210, 280), sobe
+    // 5% da própria altura em 550ms na easeOutCubic e abre em 450ms. Está no
+    // HTML como data-entrada pra ninguém precisar reabrir o Dart pra saber de
+    // onde saíram os números.
+    var blocos = Array.prototype.slice.call(hero.querySelectorAll("[data-entrada]"));
 
     // Estado inicial. O CSS já escondeu tudo isto sob a marca "js"; aqui entra
     // só o deslocamento, e o título volta a opacity 1 agora que são as
@@ -425,14 +456,17 @@
     if (botoes.length) gsap.set(botoes, { y: 18 });
     if (nota) gsap.set(nota, { y: 12 });
     if (aparelho) {
+      // A moldura já vem pintada nos -10 de repouso, então o CSS parte de
+      // -12 e assenta em 0: o que se vê continua sendo o aparelho chegando a
+      // -22 e parando a -10, igual a antes.
       gsap.set(aparelho, {
         y: 70,
-        rotationY: -22,
-        rotationX: 6,
+        rotationY: -12,
+        rotationX: 3,
         transformPerspective: 1400
       });
     }
-    if (linhas.length) gsap.set(linhas, { opacity: 0, y: 12 });
+    if (blocos.length) gsap.set(blocos, { opacity: 0, yPercent: 5 });
 
     var tl = gsap.timeline({ paused: true, defaults: { ease: CURVA.saida } });
 
@@ -457,10 +491,15 @@
         0.3
       );
     }
-    if (linhas.length) {
-      tl.to(linhas, { opacity: 1, y: 0, duration: 0.7, stagger: 0.06 }, 0.9);
-    }
-    if (contador) tl.add(contar(contador), 0.8);
+    blocos.forEach(function (bloco) {
+      var atraso = (parseInt(bloco.getAttribute("data-entrada"), 10) || 0) / 1000;
+      tl.to(
+        bloco,
+        { opacity: 1, yPercent: 0, duration: 0.55, ease: "power3.out" },
+        0.75 + atraso
+      );
+    });
+    if (contador) tl.add(contarDinheiro(contador), 0.82);
 
     quandoAFontePuder(function () {
       tl.play();

@@ -597,11 +597,18 @@ a {
   max-width: 40rem;
 }
 
+/* 21,5rem e não os 19,5rem de antes: a tela agora é a home do aplicativo nas
+   medidas dela, e o rótulo de coluna da pílula tem 10dp. A 19,5rem isso dava
+   7,4px no monitor de 1x, no limite do ilegível; a 21,5rem dá 8,2px. Não foi
+   o desenho que mudou de tamanho, foi o aparelho que cresceu, então nada aqui
+   perde fidelidade. Decisão dele em 12/09/26 ("pode mudar um pouco pra ficar
+   melhor no desktop, desde que mantenha a fidelidade"). */
 .hero__aparelho {
   position: relative;
   justify-self: end;
-  /* Cabe em tela baixa de notebook: nunca mais alto que 72% da janela. */
-  width: min(19.5rem, 100%, calc(72vh * 9 / 19.5));
+  /* Cabe em tela baixa de notebook: nunca mais alto que 72% da janela. A
+     proporção é a da imagem da moldura, não a da tela: 1000 por 2057. */
+  width: min(21.5rem, 100%, calc(72vh * 1000 / 2057));
 }
 
 @media (min-width: 60rem) {
@@ -623,20 +630,29 @@ a {
     gap: var(--e5);
   }
 
-  /* O CORTE DO APARELHO É MEDIDO, NÃO CHUTADO. A máscara começa a apagar em
-     68% da altura; a 19rem isso cai em 207px, e os três totais do card de
-     vidro terminam em 216px. Ou seja: saudação, rótulo, número-herói, chips e
-     os três totais ficam inteiros e legíveis, e a lista de parcelas (que
-     começa em 236px) é o que se desmancha. A 30rem o aparelho custava 480px,
-     mais da metade de uma tela de telefone, pra mostrar de fininho uma lista
-     que ninguém lê. Mexeu na tela desenhada, refaça esta conta. */
+  /* O CORTE DO APARELHO É MEDIDO, NÃO CHUTADO, e a conta foi refeita quando a
+     tela virou a home do aplicativo, que é mais alta que o desenho antigo.
+
+     A 16,5rem o aparelho inteiro teria 543px (264 / 0,48614). A tela começa a
+     2,485% da imagem e ocupa 94,906% dela, então uma altura X da imagem cai
+     em (X - 2,485) / 0,94906 por cento da tela, que mede 821dp.
+
+     A boa notícia termina por volta de 400dp, ou seja 47% da tela, ou 49% da
+     imagem. O nó aceso do horizonte cai em 506dp, ou 61% da imagem, e é ele
+     que dita o fim do corte: meio nó brilhando na borda fica estranho.
+
+     Cortando em 20rem (320px, 59% da imagem) e começando a apagar em 84%
+     desses 320px (269px, 49,5% da imagem), sai inteiro tudo o que importa
+     (barra do sistema, saudação, mês, número-herói, os três totais e a boa
+     notícia) e o que se desmancha é o respiro vazio, com o horizonte parando
+     antes do nó. Mexeu na tela, refaça esta conta. */
   .hero__aparelho {
     width: min(16.5rem, 74%);
     margin-right: calc(-0.35 * var(--margem));
-    max-height: 19rem;
+    max-height: 20rem;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, #000 84%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 84%, transparent 100%);
   }
 }
 
@@ -659,18 +675,38 @@ a {
 }
 
 /* --- O aparelho ------------------------------------------------------------
-   Moldura, brilho embaixo, reflexo do feixe no canto e a varredura de luz de
-   entrada moram aqui. A tela (.tela) é a reserva desenhada; a foto real entra
-   no lugar dela sem tocar em nada disto.
+   A moldura deixou de ser desenho: é um render ortogonal do modelo 3D do
+   Galaxy S25 Ultra que mora em site-parcelo-v2, feito no ângulo de repouso
+   (rotateY -10, rotateX 3) com a tela apagada e a S Pen guardada.
+
+   Por que ORTOGONAL: projeção ortogonal de um plano é transformação AFIM, e
+   afim o CSS reproduz exato com matrix(). Câmera em perspectiva faria a área
+   da tela virar trapézio, que matrix() não alcança.
+
+   Por que EM ÂNGULO: de frente este aparelho é uma lousa preta com um fio de
+   titânio na borda, quase igual à moldura em CSS que estava aqui antes. O
+   trilho, os botões e a espessura só aparecem virando.
+
+   A tela é DOM e fica RÍGIDA em relação à imagem (a mesma matriz sempre),
+   então a inclinação do mouse gira as duas juntas e elas nunca desencaixam.
+   O que a inclinação não faz é redesenhar o trilho, que segue pintado no
+   ângulo de repouso; num balanço de poucos graus o erro fica na casa de 2px.
+
+   🔴 OS NÚMEROS ABAIXO SÃO MEDIDOS, NÃO ESCOLHIDOS. Saem de
+   outputs/galaxy-s25-ultra/renders/11-site-frame.json, que o próprio script
+   de render escreve. Mexeu no ângulo ou no enquadramento, roda
+   `blender --background --factory-startup --python
+   outputs/galaxy-s25-ultra/source/render_site_frame.py` e traz os novos.
    -------------------------------------------------------------------------- */
 .aparelho {
-  --escala: 1;
   position: relative;
   z-index: 0;
   width: 100%;
   margin: 0;
-  /* A tela desenhada mede tudo pela largura do aparelho (unidade cqw), então
-     o aparelho de 237px do celular é a mesma tela do de 312px, só menor. */
+  /* A imagem enquadra o corpo com 3,5% de folga em volta. */
+  aspect-ratio: 1000 / 2057;
+  /* A tela mede tudo em cqw, então o aparelho de 264px do celular é a mesma
+     tela do de 344px, só menor. */
   container-type: inline-size;
 }
 
@@ -687,26 +723,35 @@ a {
   pointer-events: none;
 }
 
+.aparelho__corpo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* O encaixe da tela dentro da moldura. Fica POR CIMA do corpo: a tela do
+   render é preta, e é ela que aparece em qualquer fresta que sobre. */
 .aparelho__vidro {
-  position: relative;
-  aspect-ratio: 9 / 19.5;
-  /* Cada medida vem duas vezes: rem de reserva, cqw por cima. As duas dão o
-     mesmo valor no aparelho de 312px do desktop. */
-  padding: 0.5rem;
-  padding: 2.56cqw;
-  border-radius: 2.75rem;
-  border-radius: 14.1cqw;
-  background: #060d09;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 50px 90px -40px rgba(0, 0, 0, 0.8),
-    0 0 0 5px rgba(255, 255, 255, 0.025),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --dp: 0.237756cqw;
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  width: 91.2983%;
+  height: 94.9057%;
+  transform-origin: 0 0;
+  transform: translate(5.5469%, 2.6184%) matrix(0.984808, 0, -0.009088, 0.99863, 0, 0);
+  /* 3,95mm de raio no modelo sobre 74,85mm de tela: 20,27dp. Em % o CSS faria
+     canto ELÍPTICO, porque a porcentagem vertical corre sobre a altura. */
+  border-radius: calc(20.27 * var(--dp));
   overflow: hidden;
 }
 
 /* O feixe batendo no vidro: uma luz menta no canto superior direito e um
-   reflexo branco fraco. Fica por cima da tela, seja desenhada ou foto. */
+   reflexo branco fraco. Fica por cima da tela. */
 .aparelho__vidro::before {
   content: "";
   position: absolute;
@@ -715,8 +760,8 @@ a {
   border-radius: inherit;
   pointer-events: none;
   background:
-    radial-gradient(70% 45% at 100% 0%, rgba(0, 232, 132, 0.28), rgba(0, 232, 132, 0) 70%),
-    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 35%);
+    radial-gradient(70% 45% at 100% 0%, rgba(0, 232, 132, 0.16), rgba(0, 232, 132, 0) 70%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 35%);
   mix-blend-mode: screen;
 }
 
@@ -741,336 +786,537 @@ a {
   animation: varrer 1.8s var(--saida) 1.2s 1 forwards;
 }
 
-.tela__foto {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 2.3rem;
-  border-radius: 11.8cqw;
-}
-
-/* --- A tela "Meu mês", desenhada ------------------------------------------
-   Tudo em em, escalando de --escala. Copia a gramática do app: saudação,
-   marca d'água do mês vazando pela direita a 6% de branco, rótulo em caixa
-   alta sobre o número-herói (700, tracking fechado, centavos menores), card
-   de vidro raio 26 com os três totais, lista de parcelas, barra de abas.
+/* --- A tela ----------------------------------------------------------------
+   Base das duas telas do site. A da home é reprodução do código do
+   aplicativo; a de lançamento ainda é a reserva desenhada.
    -------------------------------------------------------------------------- */
 .tela {
   position: relative;
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 0.9em 1.1em 1em;
-  border-radius: 2.3rem;
-  border-radius: 11.8cqw;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--bg-alto) 0%, var(--bg) 42%);
   color: var(--texto);
-  font-size: calc(0.8rem * var(--escala));
-  font-size: 4.1cqw;
-  line-height: 1.35;
+  line-height: 1.2;
 }
 
-/* O furo da câmera. */
+/* O furo da câmera, na posição que o modelo mede: centro a 2,45% da altura
+   da tela, diâmetro de 2,87mm sobre 74,85mm de largura. */
 .tela::before {
   content: "";
   position: absolute;
-  top: 0.75em;
+  z-index: 6;
   left: 50%;
-  width: 0.75em;
-  height: 0.75em;
-  margin-left: -0.375em;
+  top: 2.4524%;
+  width: 3.834%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #000;
-  box-shadow: inset 0 0 0 2px #0f1f18;
-  z-index: 2;
+  background: #05100b;
+  box-shadow: inset 0 0 0 calc(0.7 * var(--dp)) rgba(255, 255, 255, 0.1);
 }
 
-.tela__status {
+/* A barra do sistema é do Android, não do aplicativo: é a única parte desta
+   tela que não sai do código do Parcelô. */
+.tela__sistema {
+  flex: 0 0 auto;
+  height: calc(34 * var(--dp));
+  padding: 0 calc(18 * var(--dp));
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 0.4em;
-  font-size: 0.8em;
+  justify-content: space-between;
+  font-size: calc(12.5 * var(--dp));
   font-weight: 600;
-  letter-spacing: 0.02em;
+  color: #eaf3ed;
 }
 
 .tela__sinais {
   display: inline-flex;
+  align-items: center;
+  gap: calc(5 * var(--dp));
+}
+
+.tela__antena {
+  display: inline-flex;
   align-items: flex-end;
-  gap: 0.2em;
-  height: 0.75em;
+  gap: calc(1.2 * var(--dp));
+  height: calc(9 * var(--dp));
 }
 
-.tela__sinais i {
+.tela__antena i {
   display: block;
-  width: 0.22em;
-  background: var(--texto);
-  border-radius: 1px;
+  width: calc(2 * var(--dp));
+  background: #eaf3ed;
+  border-radius: calc(0.6 * var(--dp));
 }
 
-.tela__sinais i:nth-child(1) {
-  height: 40%;
+.tela__antena i:nth-child(1) { height: 40%; }
+.tela__antena i:nth-child(2) { height: 62%; }
+.tela__antena i:nth-child(3) { height: 82%; }
+.tela__antena i:nth-child(4) { height: 100%; }
+
+.tela__pilha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(23 * var(--dp));
+  height: calc(12 * var(--dp));
+  padding: 0 calc(3 * var(--dp));
+  border-radius: calc(3.5 * var(--dp));
+  background: #eaf3ed;
+  color: var(--bg);
+  font-size: calc(8 * var(--dp));
+  font-weight: 700;
 }
 
-.tela__sinais i:nth-child(2) {
-  height: 70%;
+/* --- A home do aplicativo, reproduzida do código ---------------------------
+   Não é desenho de memória nem foto: cada medida daqui saiu de
+   lib/screens/month_screen.dart, lib/theme.dart e lib/widgets/, no
+   repositório do aplicativo. A unidade é o dp do Android, e a home mede
+   384dp de largura, que é a medida do S25.
+
+   Os ícones são o traçado real da fonte MaterialIcons que o Flutter embarca,
+   extraído glifo a glifo (o `add` confere com o path oficial em 5..19).
+
+   🔴 SE A HOME DO APLICATIVO MUDAR, ESTA TELA MENTE. Ela é uma cópia, não um
+   espelho vivo. Ao mexer na home, volte aqui.
+   -------------------------------------------------------------------------- */
+.tela--home {
+  font-size: calc(14 * var(--dp));
+  background: linear-gradient(
+    180deg,
+    var(--bg-alto) 0%,
+    #081b14 42%,
+    #040d09 100%
+  );
 }
 
-.tela__sinais i:nth-child(3) {
-  height: 100%;
-}
-
-.tela__marca-dagua {
-  position: absolute;
-  /* Em em do PRÓPRIO corpo (4,4em): 1,45em aqui são uns 6,4em da tela, o
-     que põe a palavra atrás do rótulo e do número-herói, como no app. */
-  top: 1.45em;
-  right: -0.3em;
+/* O Flutter não tem margem implícita; o navegador tem. Sem isto, o 1em do
+   número-herói (46dp) rouba 92dp e o respiro da coluna some. O :where mantém
+   a especificidade em zero, então as regras de cada peça continuam mandando. */
+.tela--home :where(p) {
   margin: 0;
-  font-size: 4.4em;
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.85;
-  color: rgba(255, 255, 255, 0.06);
-  white-space: nowrap;
-  pointer-events: none;
-  user-select: none;
 }
 
-.tela__cabecalho {
+/* O feixe do aplicativo: dois radiais, as medidas do BeamBackground. O
+   `radius` do Flutter é fração do lado MENOR, que aqui é a largura. */
+.tela__luz {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle calc(110 * 1cqw) at 77.5% -14%,
+      rgba(0, 232, 132, 0.14) 0%, rgba(0, 232, 132, 0) 70%),
+    radial-gradient(circle calc(190 * 1cqw) at 112.5% -7.5%,
+      rgba(0, 232, 132, 0.5) 0%, rgba(0, 232, 132, 0.16) 34%, rgba(0, 232, 132, 0) 62%);
+}
+
+.tela--home > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Cabeçalho: padding LTRB(20, 8, 20, 0). */
+.app__topo {
   display: flex;
   align-items: center;
-  gap: 0.7em;
-  margin-top: 1.5em;
+  gap: calc(10 * var(--dp));
+  padding: calc(8 * var(--dp)) calc(20 * var(--dp)) 0;
 }
 
-/* As três barras do menu do app: raios curtos do feixe, em cascata. */
-.tela__menu {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 0.24em;
-  width: 2.3em;
-  height: 2.3em;
-  padding-left: 0.6em;
+/* O botão de três linhas. Fechado, as barras encostam na borda ESQUERDA e
+   encurtam pra direita, apontando pro lado de onde a gaveta vem: left 12,
+   meio em 21, degrau de 6, larguras 18 / 13 / 8. */
+.app__menu {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(44 * var(--dp));
+  height: calc(44 * var(--dp));
   border-radius: 50%;
-  background: var(--vidro-alto);
-  border: 1px solid var(--vidro-borda);
+  background: rgba(255, 255, 255, 0.059);   /* glass do app: 0x0FFFFFFF */
+  border: 1px solid rgba(255, 255, 255, 0.133);   /* glassBorder: 0x22FFFFFF */
+  box-sizing: border-box;
 }
 
-.tela__menu i {
-  display: block;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--menta);
+.app__menu i {
+  position: absolute;
+  left: calc(12 * var(--dp));
+  height: calc(2 * var(--dp));
+  border-radius: calc(2 * var(--dp));
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.tela__menu i:nth-child(1) {
-  width: 1.05em;
-}
+.app__menu i:nth-child(1) { top: calc(15 * var(--dp)); width: calc(18 * var(--dp)); }
+.app__menu i:nth-child(2) { top: calc(21 * var(--dp)); width: calc(13 * var(--dp)); }
+.app__menu i:nth-child(3) { top: calc(27 * var(--dp)); width: calc(8 * var(--dp)); }
 
-.tela__menu i:nth-child(2) {
-  width: 0.75em;
-}
-
-.tela__menu i:nth-child(3) {
-  width: 0.45em;
-}
-
-.tela__ola {
-  font-size: 0.95em;
+.app__ola {
+  flex: 1;
+  text-align: right;
+  font-size: calc(15 * var(--dp));
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tela__rotulo {
-  margin: 2.3em 0 0.5em;
-  font-size: 0.66em;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--apagado);
+.app__avatar {
+  flex: 0 0 auto;
+  width: calc(40 * var(--dp));
+  height: calc(40 * var(--dp));
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(135deg, #1c4531, #0f2a1e);
 }
 
-.tela__rotulo--lista {
-  margin-top: 1.7em;
-  margin-bottom: 0.2em;
-}
-
-.tela__numero {
+.app__banda {
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 0.1em;
-  margin: 0;
-  font-size: 2.85em;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* O Spacer() do Flutter: o que sobra empurra o horizonte pro chão da tela. */
+.app__respiro {
+  flex: 1;
+  min-height: 0;
+}
+
+/* O bloco do mês: a frase vai POR CIMA da palavra, no meio dela e no mesmo
+   eixo, e o número vem imediatamente abaixo. O corpo 66 é o maior em que os
+   doze meses cabem inteiros numa tela de 384. A caixa apertada no glifo
+   (line-height .75) é o que faz a frase cair no meio ótico da palavra e o
+   número encostar nela. */
+.app__mes {
+  margin-top: calc(14 * var(--dp));
+  text-align: center;
+}
+
+.app__mes-pilha {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0 calc(8 * var(--dp));
+}
+
+.app__mes-palavra {
+  font-size: calc(66 * var(--dp));
+  font-weight: 800;
+  line-height: 0.75;
+  letter-spacing: calc(-3 * var(--dp));
+  color: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+/* O padding da esquerda é CORREÇÃO ÓTICA, não respiro: o espaçamento entra
+   depois de cada letra, inclusive da última, então a caixa nasce um espaço
+   mais larga à direita e o texto centralizado cai meio espaço à esquerda. */
+.app__mes-frase {
+  position: absolute;
+  padding-left: calc(6 * var(--dp));
+  font-size: calc(11 * var(--dp));
+  letter-spacing: calc(6 * var(--dp));
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.tela__moeda {
-  font-size: 0.5em;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-right: 0.1em;
-}
-
-.tela__centavos {
-  font-size: 0.55em;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.tela__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45em;
-  margin: 0.9em 0 0;
-}
-
-.tela__chip {
-  font-size: 0.7em;
-  font-weight: 500;
-  padding: 0.42em 0.8em;
-  border-radius: var(--raio-pilula);
-  background: rgba(255, 255, 255, 0.06);
   color: var(--apagado);
   white-space: nowrap;
 }
 
-/* Menta pro que é ganho. */
-.tela__chip--menta {
-  background: rgba(0, 200, 111, 0.14);
-  color: var(--feixe);
+.app__valor {
+  padding: 0 calc(20 * var(--dp));
+  font-size: calc(46 * var(--dp));
+  font-weight: 700;
+  letter-spacing: calc(-1 * var(--dp));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.tela__vidro {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  margin-top: 1.4em;
-  padding: 0.95em 0.5em;
-  border-radius: 2em;
-  background: var(--vidro-alto);
-  border: 1px solid var(--vidro-borda);
+/* Os centavos a 52% do corpo, escolha dele no espelho da home. Vale pra todo
+   valor do aplicativo, porque todo valor passa pelo mesmo moneySpan. */
+.app__centavos {
+  font-size: 52%;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.tela__vidro > div {
+/* --- A pílula dos totais --------------------------------------------------- */
+.app__pilula {
+  margin-top: calc(26 * var(--dp));
+  padding: 0 calc(20 * var(--dp));
+}
+
+.app__vidro {
   display: flex;
-  flex-direction: column;
-  gap: 0.2em;
+  align-items: stretch;
+  box-sizing: border-box;
+  padding: calc(14 * var(--dp)) calc(12 * var(--dp));
+  border-radius: calc(26 * var(--dp));
+  background: rgba(255, 255, 255, 0.059);   /* glass do app: 0x0FFFFFFF */
+  border: 1px solid rgba(255, 255, 255, 0.133);   /* glassBorder: 0x22FFFFFF */
+}
+
+/* A divisória: um fio de menta que nasce e morre no nada. */
+.app__fio {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1px;
+  height: calc(52 * var(--dp));
+  margin: 0 calc(8 * var(--dp));
+  background: linear-gradient(
+    180deg,
+    rgba(0, 200, 111, 0) 0%,
+    rgba(0, 200, 111, 0.34) 30%,
+    rgba(0, 200, 111, 0.34) 70%,
+    rgba(0, 200, 111, 0) 100%
+  );
+}
+
+.app__coluna {
+  flex: 1 1 0;
   min-width: 0;
-  padding: 0 0.55em;
+  padding: calc(2 * var(--dp)) calc(4 * var(--dp));
 }
 
-.tela__vidro > div + div {
-  border-left: 1px solid var(--vidro-borda);
+.app__coluna svg {
+  display: block;
+  width: calc(17 * var(--dp));
+  height: calc(17 * var(--dp));
+  fill: var(--menta);
 }
 
-.tela__vidro > div::before {
-  content: "";
-  width: 0.55em;
-  height: 0.55em;
-  border-radius: 50%;
-  background: var(--menta);
-  box-shadow: 0 0 6px rgba(0, 232, 132, 0.6);
-  margin-bottom: 0.3em;
-}
-
-.tela__vidro-rotulo {
-  font-size: 0.6em;
+.app__rotulo {
+  margin: calc(7 * var(--dp)) 0 0;
+  font-size: calc(10 * var(--dp));
+  letter-spacing: calc(0.5 * var(--dp));
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--apagado);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tela__vidro strong {
-  font-size: 0.8em;
+/* O FittedBox(scaleDown, centerLeft) do aplicativo: quando o valor não cabe
+   na coluna, ele encolhe em vez de quebrar. É por isso que CONTAS aparece
+   menor que os outros dois, no aplicativo e no print. Os fatores estão no
+   HTML porque dependem do texto: são 85dp de espaço contra a largura de cada
+   valor, medidos com esta mesma Inter. */
+.app__total {
+  margin: calc(3 * var(--dp)) 0 0;
+  width: max-content;
+  transform-origin: left center;
+  transform: scale(var(--cabe, 1));
+  font-size: calc(14.5 * var(--dp));
   font-weight: 700;
-  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.tela__lista li {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "nome valor"
-    "meta valor";
-  align-items: center;
-  column-gap: 0.6em;
-  padding: 0.7em 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.tela__lista li:first-child {
-  border-top: 0;
-}
-
-.tela__nome {
-  grid-area: nome;
-  font-size: 0.9em;
-  font-weight: 500;
-}
-
-.tela__meta {
-  grid-area: meta;
-  font-size: 0.68em;
+.app__quase {
   color: var(--apagado);
+  font-weight: 400;
 }
 
-.tela__lista strong {
-  grid-area: valor;
-  font-size: 0.88em;
+/* As bolinhas dizem que a pílula anda pro lado. Quem diz qual é a página
+   aberta é o BRILHO, não o diâmetro: 4 contra 5,2, de propósito. */
+.app__bolinhas {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(6 * var(--dp));
+}
+
+.app__bolinhas span {
+  display: grid;
+  place-items: center;
+  width: calc(13 * var(--dp));
+  height: calc(16 * var(--dp));
+}
+
+.app__bolinhas i {
+  width: calc(4 * var(--dp));
+  height: calc(4 * var(--dp));
+  border-radius: 50%;
+  background: rgba(147, 172, 159, 0.26);
+}
+
+.app__bolinhas .app__bolinha--aqui i {
+  width: calc(5.2 * var(--dp));
+  height: calc(5.2 * var(--dp));
+  background: rgba(0, 200, 111, 0.78);
+  box-shadow: 0 0 calc(5 * var(--dp)) rgba(0, 200, 111, 0.22);
+}
+
+/* --- A boa notícia --------------------------------------------------------- */
+.app__noticia {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(8 * var(--dp));
+  margin: calc(21 * var(--dp)) 0 0;
+  padding: 0 calc(24 * var(--dp));
+  font-size: calc(12.5 * var(--dp));
+  line-height: 1.45;
+  color: #c8f2dc;
+}
+
+.app__noticia svg {
+  flex: 0 0 auto;
+  width: calc(15 * var(--dp));
+  height: calc(15 * var(--dp));
+  margin-top: calc(1 * var(--dp));
+  fill: var(--menta);
+}
+
+.app__noticia b {
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.tela__lista--acabando .tela__meta {
-  color: var(--feixe);
-}
-
-.tela__barra {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: auto;
-  padding: 0.9em 0.2em 0.2em;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  font-size: 0.6em;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--apagado);
-  text-align: center;
-}
-
-.tela__barra span {
-  display: grid;
-  gap: 0.5em;
-  justify-items: center;
-}
-
-.tela__barra span::before {
-  content: "";
-  width: 1.6em;
-  height: 1.6em;
-  border-radius: 0.55em;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.tela__barra--ativa {
   color: var(--texto);
 }
 
-.tela__barra--ativa::before {
-  background: rgba(0, 200, 111, 0.22);
-  box-shadow: 0 0 8px rgba(0, 232, 132, 0.35);
+.app__noticia em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--menta);
+}
+
+.app__panorama {
+  margin: calc(18 * var(--dp)) 0 calc(6 * var(--dp));
+  padding: 0 calc(20 * var(--dp));
+  font-size: calc(11 * var(--dp));
+  letter-spacing: calc(1.6 * var(--dp));
+  font-weight: 600;
+  color: var(--apagado);
+}
+
+/* --- O horizonte, sangrando de ponta a ponta -------------------------------
+   A curva é Catmull-Rom convertida em Bézier com tangente sobre 6, que é
+   exatamente o _smoothPath do aplicativo. A massa cobre só o passado; o
+   traço do futuro se dissolve saindo pela direita, e é isso que diz, sem
+   seta e sem moldura, que a linha continua além da tela.
+   -------------------------------------------------------------------------- */
+.app__horizonte {
+  flex: 0 0 auto;
+}
+
+.app__horizonte svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.app__meses {
+  display: flex;
+  margin-top: calc(8 * var(--dp));
+  font-size: calc(11 * var(--dp));
+  font-weight: 500;
+  color: var(--apagado);
+}
+
+.app__meses span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.app__meses .app__mes-agora {
+  font-weight: 700;
+  letter-spacing: calc(1.2 * var(--dp));
+  color: var(--menta);
+}
+
+/* O conteúdo tem que parar acima da pílula de vidro: ela mede 76 a partir da
+   área segura, e o botão ainda sobe além dela. */
+.app__rodape {
+  flex: 0 0 auto;
+  height: calc(120 * var(--dp));
+}
+
+/* --- A navegação de vidro -------------------------------------------------- */
+.app__nav {
+  position: absolute;
+  z-index: 5;
+  left: calc(16 * var(--dp));
+  right: calc(16 * var(--dp));
+  bottom: calc(34 * var(--dp));
+  height: calc(76 * var(--dp));
+}
+
+.app__nav-vidro {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: calc(62 * var(--dp));
+  border-radius: calc(22 * var(--dp));
+  background: rgba(10, 27, 19, 0.55);
+  backdrop-filter: blur(calc(24 * var(--dp)));
+  border: 1px solid rgba(255, 255, 255, 0.133);   /* glassBorder: 0x22FFFFFF */
+}
+
+.app__aba {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--apagado);
+}
+
+.app__aba svg {
+  width: calc(21 * var(--dp));
+  height: calc(21 * var(--dp));
+  fill: currentColor;
+}
+
+.app__aba span {
+  margin-top: calc(3 * var(--dp));
+  font-size: calc(10.5 * var(--dp));
+  font-weight: 500;
+}
+
+.app__aba--aqui {
+  color: var(--menta);
+}
+
+.app__vao {
+  flex: 0 0 calc(64 * var(--dp));
+}
+
+.app__mais {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: calc(56 * var(--dp));
+  height: calc(56 * var(--dp));
+  border-radius: calc(19 * var(--dp));
+  background: linear-gradient(135deg, #00e082, #00a85c);
+  box-shadow: 0 calc(6 * var(--dp)) calc(18 * var(--dp)) rgba(0, 200, 111, 0.4);
+}
+
+.app__mais svg {
+  width: calc(26 * var(--dp));
+  height: calc(26 * var(--dp));
+  fill: #000;
+}
+
+.app__gesto {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(9 * var(--dp));
+  transform: translateX(-50%);
+  width: calc(108 * var(--dp));
+  height: calc(4 * var(--dp));
+  border-radius: calc(2 * var(--dp));
+  background: rgba(255, 255, 255, 0.38);
 }
 
 /* --- Faixa de confiança --------------------------------------------------
@@ -1582,7 +1828,16 @@ a {
 }
 
 /* A folha "Nova compra parcelada". */
+/* A folha desenhada, que ainda não veio do código do aplicativo. Tudo aqui
+   dentro é em em, então basta o corpo certo pra ela continuar idêntica.
+
+   O 3,743cqw não é chute: era 4,1cqw quando a caixa da tela ocupava a largura
+   INTEIRA do .aparelho. Agora ela ocupa os 91,2983% que a moldura reserva
+   para o vidro, e 4,1 x 0,912983 dá 3,743. Sem isso a folha cresceria 9,5%
+   dentro de uma caixa que encolheu. */
 .tela--lancamento {
+  padding: 0.9em 1.1em 1em;
+  font-size: 3.743cqw;
   background: linear-gradient(180deg, var(--bg-alto) 0%, var(--bg) 30%);
 }
 
