@@ -2,5 +2,11 @@
 # aqui porque sao a outra metade do fluxo que termina em /acao/: a pessoa recebe
 # um deles, clica, e cai naquela pagina. Fora do cliente de e-mail eles nao
 # funcionam nem fazem sentido, entao nao ha o que indexar.
+#
+# A pasta /tools/ tambem nao e pagina: e ferramenta de linha de comando. Mora
+# ali o gerador das paginas legais e o exportador da tela do hero, que vira
+# textura do modelo 3D no outro repositorio. Nao ha o que indexar, e a pagina
+# de exportacao mostra a tela do aplicativo fora de contexto.
 User-agent: *
 Disallow: /emails/
+Disallow: /tools/
