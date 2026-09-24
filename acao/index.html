@@ -13,7 +13,7 @@
 <!--
   Página que conclui as ações de conta do Parcelô: confirmar e-mail, criar uma
   senha nova, desfazer troca de e-mail. É o "URL acionável personalizado" do
-  Firebase Auth — antes disso, o link do e-mail levava para
+  Firebase Auth. Antes disso, o link do e-mail levava para
   parcelo1.firebaseapp.com, um domínio que ninguém reconhece. Num app de
   finanças, link estranho é o que ensina a pessoa a clicar em link de golpe.
 
@@ -278,14 +278,15 @@
     elSelo.className = 'selo selo-' + estado;
     elSelo.textContent = estado === 'ok' ? '✓' : estado === 'erro' ? '!' : '•';
     elTitulo.textContent = titulo;
-    // textContent, nunca innerHTML: o e-mail vem de uma resposta de rede e
-    // não pode virar marcação dentro da página.
+    // textContent, nunca innerHTML: nada que venha do link ou da rede pode
+    // virar marcação dentro da página. E nenhum dado da conta (e-mail, nome)
+    // entra aqui: a página não confirma de quem é a conta.
     elStatus.textContent = texto;
     elDetalhe.textContent = detalhe || '';
     if (estado === 'erro') rodapeAjuda.hidden = false;
   }
 
-  /** POST no Identity Toolkit, com desistência por tempo — a página nunca
+  /** POST no Identity Toolkit, com desistência por tempo: a página nunca
       pode ficar pendurada esperando rede que não volta. */
   function chamar(metodo, corpo) {
     var ctrl = new AbortController();
@@ -319,7 +320,7 @@
   // página é o ÚNICO lugar onde a senha nova pode ser barrada com a régua do
   // Parcelô: a política do Firebase não sabe dizer "uma letra" (só maiúscula
   // e minúscula, separadas), e exigir minúscula lá recusaria `SENHA1`, que o
-  // app aceita — o cadastro passaria a mentir na própria lista de requisitos.
+  // app aceita, e o cadastro passaria a mentir na própria lista de requisitos.
   // Então lá fica o que é comum aos dois (6+ e número) e o resto vive aqui.
   //
   // Mexeu na regra do app? Mexa aqui junto. Duas réguas diferentes pra mesma
@@ -339,7 +340,7 @@
     'A senha precisa de pelo menos ' + SENHA_MIN +
     ' caracteres, com letra e número.';
 
-  /** O que impede esta senha de valer — ou nulo, se ela vale. */
+  /** O que impede esta senha de valer, ou nulo, se ela vale. */
   function problemaDaSenha(s) {
     if (s.length < SENHA_MIN || !TEM_LETRA.test(s) || !TEM_NUMERO.test(s)) {
       return SENHA_FRACA;
@@ -400,13 +401,16 @@
   }
 
   function prepararSenha() {
-    // Mandar só o oobCode VERIFICA o código sem gastá-lo: dá para saber de
-    // qual conta é o link antes de a pessoa digitar qualquer coisa.
-    chamar('resetPassword', {}).then(function (r) {
+    // Mandar só o oobCode VERIFICA o código sem gastá-lo: a página sabe se o
+    // link ainda vale antes de a pessoa digitar qualquer coisa. A resposta do
+    // Google traz o e-mail da conta, e ele é jogado fora sem ser lido: a
+    // página não diz de quem é a conta pra quem estiver com o link, olhando a
+    // tela por cima do ombro ou vendo um print.
+    chamar('resetPassword', {}).then(function () {
       pintar(
         'espera',
         'Criar uma nova senha',
-        r.email ? 'Conta: ' + r.email : 'Escolha a nova senha da sua conta.',
+        'Escolha a nova senha da sua conta.',
         'Depois de salvar, entre no aplicativo com ela.'
       );
       areaSenha.hidden = false;
