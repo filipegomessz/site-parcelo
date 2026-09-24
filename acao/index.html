@@ -6,7 +6,8 @@
 <title>Parcelô — confirmar ação da conta</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- O endereço desta página carrega o código do e-mail. Sem isto, ele poderia
-     sair no cabeçalho Referer de uma requisição pra fora do site. -->
+     sair no cabeçalho Referer de uma requisição pra fora do site. A chamada ao
+     Google abre uma exceção só pra origem: ver o referrerPolicy no script. -->
 <meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="../assets/style.css">
 <!--
@@ -275,7 +276,13 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(corpo),
-      signal: ctrl.signal
+      signal: ctrl.signal,
+      // Só esta chamada diz de onde vem, e só a origem
+      // (https://parceloapp.com.br/), nunca o endereço com o código. É o que
+      // deixa a chave ser restrita a este site no Google Cloud (restrição por
+      // referenciador HTTP); com o no-referrer da página inteira, a restrição
+      // recusaria a própria página.
+      referrerPolicy: 'strict-origin'
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) {
