@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Parcelô — confirmar ação da conta</title>
 <meta name="robots" content="noindex, nofollow">
+<!-- O endereço desta página carrega o código do e-mail. Sem isto, ele poderia
+     sair no cabeçalho Referer de uma requisição pra fora do site. -->
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="../assets/style.css">
 <!--
   Página que conclui as ações de conta do Parcelô: confirmar e-mail, criar uma
@@ -19,9 +22,11 @@
   o IP para ninguém além do serviço que é o destino da própria ação.
 
   A chave da API vem NA URL do link (o Firebase sempre a inclui). Não é
-  segredo — é identificador público de projeto — e não fica escrita aqui de
-  propósito: se faltar, o link está incompleto e a página diz isso, em vez de
-  tentar adivinhar com uma chave que pode nem valer para a web.
+  segredo: é identificador público de projeto. A página usa a chave que veio
+  no link, mas só aceita a do Parcelô (CHAVE_DO_PARCELO, no script). Sem essa
+  conferência, qualquer um montaria um link neste domínio com a chave de outro
+  projeto, e a página do Parcelô redefiniria a senha de uma conta de fora
+  (achado na varredura de segurança de 23/09/26).
 -->
 <style>
   /* Só o que a página precisa a mais. O mundo visual (fundo, feixe, cores,
@@ -232,6 +237,11 @@
   var modo = params.get('mode');
   var oob = params.get('oobCode');
   var chave = params.get('apiKey');
+
+  // A chave do Parcelô: a "Browser key" do projeto parcelo1, a mesma que o
+  // Firebase põe em todo link de e-mail. Se um dia a chave do projeto mudar,
+  // esta linha muda junto, senão todo link passa a dar "Link não reconhecido".
+  var CHAVE_DO_PARCELO = 'AIzaSyDLNAtBRAkgzmGuFNShqnBA7NsRlk-0VBc';
 
   var elTitulo = document.getElementById('titulo');
   var elStatus = document.getElementById('status');
@@ -445,6 +455,25 @@
     return;
   }
 
+  // Dentro de um iframe de outro site, ou com a chave de outro projeto, a
+  // página não chama o servidor e não mostra formulário nenhum. (O GitHub
+  // Pages não deixa mandar o cabeçalho que proíbe iframe, então a trava é
+  // esta.)
+  if (window.top !== window.self || chave !== CHAVE_DO_PARCELO) {
+    pintar('erro', 'Link não reconhecido', 'Peça um novo pelo aplicativo.');
+    return;
+  }
+
+  // O código já está guardado na página: sai da barra de endereço e do
+  // histórico, pra não ficar num computador compartilhado nem sair num print.
+  // Recarregar depois disso pede o link do e-mail de novo, que continua
+  // valendo (abrir a página não gasta o código).
+  try {
+    window.history.replaceState(null, '', window.location.pathname);
+  } catch (e) {
+    /* sem history: segue com o endereço como está */
+  }
+
   ligarOlho('verSenha', 'senha');
   ligarOlho('verSenha2', 'senha2');
   areaSenha.addEventListener('submit', salvarSenha);
@@ -455,7 +484,13 @@
       pintar(
         'espera',
         'Confirmar seu e-mail',
-        'Toque no botão para confirmar que este endereço é seu.'
+        'Toque no botão para confirmar que este endereço é seu.',
+        // Só no cadastro: quem sabe o endereço de alguém pode criar a conta
+        // antes, e é a confirmação que daria a essa pessoa uma conta válida.
+        modo === 'verifyEmail'
+          ? 'Caso você não tenha realizado este cadastro, feche esta página ' +
+            'sem confirmar.'
+          : ''
       );
       areaConfirmar.hidden = false;
       btnConfirmar.textContent = 'Confirmar meu e-mail';
