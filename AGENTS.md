@@ -12,10 +12,22 @@ Site institucional do **Parcelô**, um aplicativo Android de controle de parcela
 de cartão e contas recorrentes (pacote `br.com.parcelo`).
 
 - Domínio: **https://parceloapp.com.br** (arquivo `CNAME`).
-- Hospedagem: **GitHub Pages**, servindo a branch `main`.
+- Hospedagem: **GitHub Pages pela origem "GitHub Actions"** desde 01/10/2026.
+  O fluxo `.github/workflows/github-pages.yml` roda a cada push na `main` e
+  publica a pasta `dist/` (o site novo, que veio do `site-parcelo-v4`) somada às
+  páginas que já estavam no ar: `privacidade/`, `termos/`, `excluir-conta/`,
+  `acao/`, `emails/`, `assets/style.css`, `robots.txt`, `CNAME` e `.nojekyll`.
+  Esses endereços são usados fora do site (Play e e-mails do app) e não podem
+  sumir. Página nova da raiz que precise ir ao ar entra na lista do fluxo.
+- O `index.html`, o `assets/landing.*`, o `assets/js/` e o `assets/img/` da raiz
+  são da landing antiga: continuam no repositório, mas **não são mais
+  publicados**. A landing no ar é `dist/index.html`.
 - **HTML, CSS e JavaScript servidos como arquivo. Sem build.**
   Não existe `package.json`, não existe `npm run dev`, não existe bundler, e não
-  vai passar a existir. Não crie nenhum dos três.
+  vai passar a existir. Não crie nenhum dos três. Os únicos comandos são
+  `node prepare-assets.mjs` (copia `Imagens/` para `dist/Imagens/`),
+  `node scripts/check-pages.mjs` (procura link quebrado) e `node serve.mjs`
+  (prévia de `dist/` em `http://127.0.0.1:4173`).
 - O repositório do aplicativo é outro (`filipegomessz/parcelo`, privado). Aqui
   **nunca** entra chave, keystore, `google-services.json` ou credencial.
 
@@ -50,9 +62,13 @@ significa trabalhar sobre código velho.
 | `acao/`, `emails/` | fluxo de e-mail transacional do aplicativo |
 | `tools/gerar-legais.pl` | gerador das páginas legais |
 | `CNAME`, `.nojekyll`, `robots.txt` | infraestrutura da hospedagem |
+| `.github/workflows/github-pages.yml` | é ele que põe o site no ar |
 
-Sobra para você: **`index.html`, `assets/landing.css`, `assets/landing.js`** e,
-quando houver imagem, `assets/img/`. Mais `tools/exportar-tela.html` e
+Sobra para você: **`dist/`** (o site que está no ar) e `Imagens/`. Os itens 4 a 6
+abaixo foram escritos para a landing antiga, mas as regras de privacidade (item
+4) e de texto (item 5) valem igual para o site novo.
+Da landing antiga, que não vai mais ao ar: `index.html`, `assets/landing.css`,
+`assets/landing.js` e `assets/img/`. Mais `tools/exportar-tela.html` e
 `tools/exportar-tela.mjs`, que são ferramenta de linha de comando, não página do
 site: geram a textura da tela para o modelo 3D (item 6). O que sai deles cai em
 `tools/saida/`, que o Git ignora.
