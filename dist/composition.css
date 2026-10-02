@@ -287,3 +287,22 @@ body:has(.story-viewer[open]){overflow:hidden}
 
 .glass-nav{font-family:'Manrope',sans-serif}
 .glass-nav a{font-weight:700}
+
+/* Prepared original-model frames keep the same stage and chapter timeline. */
+.lite-object,.lite-screen{position:absolute;left:0;top:0;pointer-events:none;contain:layout paint}
+.lite-object img{display:block;width:100%;height:100%}
+.lite-screen{overflow:hidden;border-radius:1.5% / .7%;background:#000}
+.lite-screen[hidden]{display:none}
+.lite-screen img{display:block;width:100%;height:100%;object-fit:cover}
+.lite-screen span{position:absolute;inset:0;background:#000;pointer-events:none}
+/* Hide the whole fallback: its child image explicitly sets visibility:visible. */
+.phone-scene[data-frames="ready"]+.phone-fallback{display:none}
+.phone-scene[data-frames="ready"]~.money-fallback{visibility:hidden}
+html[data-render-mode="lite"] :is(.glass-nav,.glass-panel,.store-pill,.qr-dock,.pricing-card){backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-render-mode="lite"] :is(.feature-pair,.nav-lens-content){filter:none}
+html[data-render-mode="lite"] .glass-nav{background:linear-gradient(115deg,#142821ed,#081510ed 48%,#14271fed)}
+html[data-render-mode="lite"] .story-viewer::backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-render-mode="lite"] .phone-fallback img{filter:none}
+.lite-object{z-index:2}
+.lite-screen{z-index:1}
+.phone-scene:not([data-frames="ready"]) .lite-object{visibility:hidden}

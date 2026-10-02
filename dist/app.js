@@ -1,9 +1,7 @@
-import * as THREE from 'three';
-import { batchStaticMeshes } from './static-meshes.js';
+import { HandoffMotion } from './handoff-motion.js';
+import { LiteScene } from './lite-scene.js';
 import { sceneLayout } from './phone-layout.js';
 import { transitionPose, HANDOFF_AT, DOCK_AT } from './money-transition.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const experience = document.querySelector('.scene-track');
 const intro = document.querySelector('.hero-intro');
@@ -25,7 +23,59 @@ const navigationSections = ['secao-3', 'secao-4', 'secao-5', 'faq'].map(id => do
 const storiesSection = document.querySelector('.stories-section');
 const footer = document.querySelector('.site-footer');
 const ease = value => value * value * (3 - 2 * value);
+const MathUtils = { clamp: (v, min, max) => Math.max(min, Math.min(max, v)), lerp: (a, b, t) => a + (b - a) * t };
+let THREE, GLTFLoader, RoomEnvironment, batchStaticMeshes;
 let renderer, scene, camera, phone, phoneModel, moneyModel, screenMaterial, environmentTarget;
+let liteScene, lite = false, lastMotionTick = 0, qualitySamples = [], poorWindows = 0, severeFrames = 0, monitoringAfter = Infinity;
+function paintLite() {
+  liteScene?.update({ width, height, compact: compactLayout.matches, raw: visualRaw, exchanging: handoffMotion.active,
+    reduced: reduced.matches, chapter: activeChapter, brightness: screenBrightness });
+}
+function activateLite(reason) {
+  if (lite) return;
+  lite = true; failed = true; ready = false;
+  cancelAnimationFrame(frame); frame = 0;
+  floatAnimation?.cancel(); floatAnimation = undefined;
+  document.documentElement.dataset.renderMode = 'lite';
+  host.dataset.mode = 'lite'; host.dataset.reason = reason; host.dataset.state = 'error';
+  // A downgrade is permanent for this visit: no expensive quality oscillation.
+  if (renderer) {
+    const geometries = new Set(), materials = new Set(), textures = new Set(screenTextures);
+    scene?.traverse(object => {
+      if (object.geometry) geometries.add(object.geometry);
+      for (const material of Array.isArray(object.material) ? object.material : object.material ? [object.material] : []) {
+        materials.add(material);
+        for (const value of Object.values(material)) if (value?.isTexture) textures.add(value);
+      }
+    });
+    geometries.forEach(value => value.dispose()); materials.forEach(value => value.dispose());
+    textures.forEach(value => value.dispose()); environmentTarget?.dispose();
+    renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
+    renderer = undefined; scene = undefined; screenTextures = [];
+    phone = phoneModel = moneyModel = screenMaterial = camera = environmentTarget = undefined;
+  }
+  liteScene = new LiteScene(host, () => { if (!document.hidden && inView) requestRender(); });
+  document.dispatchEvent(new Event('parcelo:render-mode'));
+  updateScroll(false, true); paintLite(); requestRender();
+}
+function monitorMotion(time, moving) {
+  if (!moving || reduced.matches || time < monitoringAfter) { lastMotionTick = 0; qualitySamples = []; poorWindows = 0; severeFrames = 0; return; }
+  if (lastMotionTick) {
+    const interval = time - lastMotionTick;
+    severeFrames = interval >= 120 ? severeFrames + 1 : 0;
+    if (severeFrames >= 3) { activateLite('sustained-slow-frames'); return; }
+    qualitySamples.push(interval);
+    if (qualitySamples.length >= 12) {
+      const poor = qualitySamples.filter(value => value > 40).length >= 8;
+      poorWindows = poor ? poorWindows + 1 : 0;
+      qualitySamples = [];
+      if (poorWindows >= 2) activateLite('sustained-slow-frames');
+    }
+  }
+  lastMotionTick = time;
+}
+const handoffMotion = new HandoffMotion();
+let visualRaw = 0;
 let moneyHalfSize, motion = transitionPose(0);
 const handoff = { value: 0 };
 const screenSources = [
@@ -70,14 +120,14 @@ function approachTravel() { return height * (reduced.matches ? .65 : compactLayo
 // never scrubs its transition, so stopping the wheel cannot freeze a fade.
 function advanceChapter(time = performance.now()) {
   const transition = chapterTransition;
-  const fraction = transition ? THREE.MathUtils.clamp((time - transition.start) / 380, 0, 1) : 1;
+  const fraction = transition ? MathUtils.clamp((time - transition.start) / 380, 0, 1) : 1;
   const blend = 1 - Math.pow(1 - fraction, 3);
   screenBrightness = transition ? .45 + .55 * blend : 1;
   featurePairs.forEach((pair, index) => {
     const target = index === activeChapter ? 1 : 0;
     const from = transition?.from[index];
-    const opacity = from ? THREE.MathUtils.lerp(from.opacity, target, blend) : target;
-    const shift = from ? THREE.MathUtils.lerp(from.y, target ? 0 : -18 * transition.direction, blend) : 0;
+    const opacity = from ? MathUtils.lerp(from.opacity, target, blend) : target;
+    const shift = from ? MathUtils.lerp(from.y, target ? 0 : -18 * transition.direction, blend) : 0;
     pairStates[index] = { opacity, y: shift };
     setStyle(pair, 'content-visibility', opacity > 0 ? 'visible' : 'hidden');
     setStyle(pair, '--pair-opacity', opacity.toFixed(3));
@@ -86,13 +136,14 @@ function advanceChapter(time = performance.now()) {
   });
   setStyle(fallbackImage, '--screen-brightness', screenBrightness.toFixed(3));
   if (fraction === 1) chapterTransition = null;
+  if (lite) paintLite();
   stage.dataset.transitioning = String(Boolean(chapterTransition));
 }
 
 function applyChapter(scrollProgress = 0) {
   // Exact same quarters as the four visible progress segments, both ways.
   const nextIndex = Math.min(3, Math.floor(scrollProgress * 4));
-  chapterBars.forEach((bar, index) => setStyle(bar, '--fill', THREE.MathUtils.clamp(scrollProgress * 4 - index, 0, 1).toFixed(6)));
+  chapterBars.forEach((bar, index) => setStyle(bar, '--fill', MathUtils.clamp(scrollProgress * 4 - index, 0, 1).toFixed(6)));
   const percent = (scrollProgress * 100).toFixed(2);
   if (chapterRail.getAttribute('aria-valuenow') !== percent) chapterRail.setAttribute('aria-valuenow', percent);
   if (activeChapter !== nextIndex || chapterRail.getAttribute('aria-valuetext') !== `Tela ${nextIndex + 1} de 4`) {
@@ -120,12 +171,14 @@ function applyChapter(scrollProgress = 0) {
   advanceChapter();
 }
 
-function applyProgress(raw) {
-  motion = transitionPose(raw, reduced.matches);
+function applyProgress(raw, { time = performance.now(), settle = false, exact = false } = {}) {
+  visualRaw = exact ? raw : handoffMotion.sample(raw, time, { reduced: reduced.matches, settle });
+  motion = transitionPose(visualRaw, reduced.matches);
+  setData('exchanging', String(handoffMotion.active));
   progress = motion.approach;
   setStyle(stage, '--progress', progress.toFixed(4));
   setStyle(stage, '--scroll-progress', (reduced.matches ? 1 : Math.min(raw / DOCK_AT, 1)).toFixed(4));
-  const exit = ease(THREE.MathUtils.clamp(raw / .17, 0, 1));
+  const exit = ease(MathUtils.clamp(raw / .17, 0, 1));
   setStyle(intro, '--intro-opacity', (1 - exit).toFixed(3));
   setStyle(intro, '--intro-exit', exit.toFixed(3));
   const hideIntro = !reduced.matches && !compactLayout.matches && raw >= .17;
@@ -140,6 +193,7 @@ function applyProgress(raw) {
   setData('screen', motion.exchange >= .5 ? 'on' : 'off');
   setStyle(stage, '--cash-visible', motion.exchange < .5 ? '1' : '0');
   // The last 18% of the pinned scene is a still interval for reading the cards.
+  if (lite) paintLite();
   const docked = (ready || failed) && (reduced.matches ? motion.exchange === 1 : raw >= DOCK_AT);
   if (lastDocked !== docked) {
     lastDocked = docked;
@@ -165,14 +219,14 @@ function updateScroll(queue = true, immediate = false) {
   const storyBounds = storiesSection.getBoundingClientRect();
   const footerVisible = footer.getBoundingClientRect().top < innerHeight;
   const sectionTops = navigationSections.map(section => section.getBoundingClientRect().top);
-  targetRaw = travel > 0 ? THREE.MathUtils.clamp(scrolled / travel, 0, 1) : 1;
+  targetRaw = travel > 0 ? MathUtils.clamp(scrolled / travel, 0, 1) : 1;
   // Include the reading holds, from the first docked frame to sticky release.
   const chapterStart = travel * (reduced.matches ? HANDOFF_AT : DOCK_AT);
   const chapterTravel = Math.max(1, sceneRect.height - height - chapterStart);
-  applyChapter(THREE.MathUtils.clamp((scrolled - chapterStart) / chapterTravel, 0, 1));
+  applyChapter(MathUtils.clamp((scrolled - chapterStart) / chapterTravel, 0, 1));
   if (immediate) { chapterTransition = null; advanceChapter(); }
   if (immediate || !ready || failed || reduced.matches || !inView) {
-    displayedRaw = targetRaw; applyProgress(displayedRaw);
+    displayedRaw = targetRaw; applyProgress(displayedRaw, { settle: immediate || !inView });
   }
   updateNavigation(sectionTops);
   qr.classList.toggle('is-opening-hidden', !lastDocked && sceneRect.bottom > 0);
@@ -188,10 +242,10 @@ function render(time = 0) {
   if (reduced.matches || progress >= .999) readingResolution = true;
   else if (progress < .98) readingResolution = false;
   setSceneResolution();
-  const pixels = THREE.MathUtils.lerp(layout.startHeight, layout.endHeight, progress);
+  const pixels = MathUtils.lerp(layout.startHeight, layout.endHeight, progress);
   const distance = layout.focal / pixels;
-  const x = THREE.MathUtils.lerp(layout.startX, width / 2, progress);
-  const y = THREE.MathUtils.lerp(layout.startY, layout.endY, progress);
+  const x = MathUtils.lerp(layout.startX, width / 2, progress);
+  const y = MathUtils.lerp(layout.startY, layout.endY, progress);
   // Reuse the rendered layer for the tiny decorative float. No geometry,
   // lighting or screen pixels change while the reader is standing still.
   updateFloat(reduced.matches ? 0 : pixels * .008 * (1 - progress));
@@ -246,16 +300,25 @@ function tick(time) {
     advanceChapter(time);
     if (chapterTransition) requestRender(false);
   }
+  const handoffAnimating = handoffMotion.active;
+  if (handoffAnimating) {
+    applyProgress(displayedRaw, { time });
+    if (handoffMotion.active) requestRender(false);
+    else needsRender = true; // Present the final clean model even between render slots.
+  }
+  if (lite) { if (inView) paintLite(); needsRender = false; return; }
   if (!inView || !ready || failed) return;
   const movingRaw = Math.abs(targetRaw - displayedRaw) > .00005;
   const screenChanged = !lastPose || screenIndex !== lastPose[7] || (motion.exchange >= .5 ? screenBrightness : 0) !== lastPose[6];
-  const moving = movingRaw || screenChanged;
+  const moving = movingRaw || screenChanged || handoffAnimating;
+  monitorMotion(time, moving);
+  if (lite) return;
   if (movingRaw) {
     const delta = Math.min(50, Math.max(1, time - (lastTick || time - 16)));
     const blend = 1 - Math.exp(-delta / 70);
-    displayedRaw = THREE.MathUtils.lerp(displayedRaw, targetRaw, blend);
+    displayedRaw = MathUtils.lerp(displayedRaw, targetRaw, blend);
     if (Math.abs(targetRaw - displayedRaw) < .00005) displayedRaw = targetRaw;
-    if (movingRaw) applyProgress(displayedRaw);
+    if (movingRaw) applyProgress(displayedRaw, { time });
   }
   lastTick = time;
   const interval = 1000 / (moving ? 60 : 30);
@@ -268,12 +331,12 @@ function tick(time) {
   }
   // Never drop the last chapter update when it lands between two GPU frames.
   const pendingScreen = !lastPose || screenIndex !== lastPose[7] || (motion.exchange >= .5 ? screenBrightness : 0) !== lastPose[6];
-  if (pendingScreen || (!reduced.matches && movingRaw)) requestRender(false);
+  if (pendingScreen || handoffMotion.active || (!reduced.matches && movingRaw)) requestRender(false);
 }
 function requestRender(force = true) {
   if (force) needsRender = true;
   if (document.hidden) return;
-  if (!frame && (scrollDirty || chapterTransition || (ready && inView && !failed))) frame = requestAnimationFrame(tick);
+  if (!frame && (scrollDirty || chapterTransition || (handoffMotion.active && inView) || (lite && inView && needsRender) || (ready && inView && !failed))) frame = requestAnimationFrame(tick);
 }
 function setSceneResolution() {
   const crop = layout.crop;
@@ -288,6 +351,7 @@ function setSceneResolution() {
 }
 function resize(force = false) {
   placeFeatures();
+  if (lite) { updateScroll(false, true); paintLite(); return; }
   if (!modelHalfSize) return;
   const density = Math.min(devicePixelRatio || 1, 2);
   const key = [width, height, density].join(':');
@@ -363,7 +427,23 @@ function applyHandoffMaterial(root, isCash) {
 }
 
 async function initialize() {
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+  if (reduced.matches || navigator.connection?.saveData) { activateLite(reduced.matches ? 'reduced-motion' : 'save-data'); return; }
+  const canvas = document.createElement('canvas');
+  const options = { alpha: true, antialias: true, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: true };
+  let context;
+  try { context = canvas.getContext('webgl2', options); } catch { /* Use HTML if blocked. */ }
+  if (!context) { activateLite('graphics-unavailable-or-slow'); return; }
+  try {
+    [THREE, { GLTFLoader }, { RoomEnvironment }, { batchStaticMeshes }] = await Promise.all([
+      import('three'), import('three/addons/loaders/GLTFLoader.js'),
+      import('three/addons/environments/RoomEnvironment.js'), import('./static-meshes.js')
+    ]);
+  } catch (error) { context.getExtension('WEBGL_lose_context')?.loseContext(); throw error; }
+  if (lite) { context.getExtension('WEBGL_lose_context')?.loseContext(); return; }
+  renderer = new THREE.WebGLRenderer({ ...options, canvas, context });
+  renderer.domElement.addEventListener('webglcontextlost', event => {
+    event.preventDefault(); if (!lite) activateLite('graphics-context-lost');
+  });
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -383,6 +463,18 @@ async function initialize() {
     Promise.all(screenSources.map(source => new THREE.TextureLoader().loadAsync(source))),
     new GLTFLoader().loadAsync('./models/maco-100-reais.glb'),
   ]);
+  if (lite) {
+    const texturesToDispose = new Set(textures);
+    for (const asset of [gltf.scene, moneyGltf.scene]) asset.traverse(object => {
+      object.geometry?.dispose();
+      for (const material of Array.isArray(object.material) ? object.material : object.material ? [object.material] : []) {
+        for (const value of Object.values(material)) if (value?.isTexture) texturesToDispose.add(value);
+        material.dispose();
+      }
+    });
+    texturesToDispose.forEach(texture => texture.dispose());
+    return;
+  }
   const asset = gltf.scene;
   const display = asset.getObjectByName('Phone_Display');
   if (!display?.isMesh) throw new Error('Phone_Display missing in the supplied model');
@@ -456,12 +548,14 @@ async function initialize() {
   resize(true);
   screenTextures.forEach(item => renderer.initTexture(item));
   await renderer.compileAsync(scene, camera);
+  if (lite) return;
   renderer.domElement.style.visibility = 'hidden';
   ready = true;
   const initialRaw = displayedRaw;
-  applyProgress(HANDOFF_AT);
+  applyProgress(HANDOFF_AT, { exact: true });
   render(0);
   await renderer.compileAsync(scene, camera);
+  if (lite) return;
   applyProgress(initialRaw);
   needsRender = true;
   render(0);
@@ -470,27 +564,22 @@ async function initialize() {
   updateScroll(false);
   requestRender();
   host.dataset.state = 'ready';
+  host.dataset.mode = 'gpu'; document.documentElement.dataset.renderMode = 'gpu';
+  monitoringAfter = performance.now() + 1200;
   updateFloatPlayback();
   host.dataset.model = 'maco-100-reais + galaxy-s25-ultra';
-  new ResizeObserver(resize).observe(stage);
-  new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; updateFloatPlayback(); if (inView) requestRender(); else { cancelAnimationFrame(frame); frame = 0; } }).observe(stage);
-  renderer.domElement.addEventListener('webglcontextlost', event => {
-    event.preventDefault(); failed = true; cancelAnimationFrame(frame); frame = 0; host.dataset.state = 'error';
-    updateFloatPlayback();
-    applyProgress(targetRaw);
-  });
-  renderer.domElement.addEventListener('webglcontextrestored', () => {
-    try {
-      restoreStudioEnvironment();
-      failed = false; resize(true); host.dataset.state = 'ready'; requestRender();
-    } catch (error) {
-      failed = true; host.dataset.state = 'error'; console.error('Parcelo 3D restore:', error);
-    }
-  });
+
   requestRender();
 }
 
 placeFeatures();
+new ResizeObserver(resize).observe(stage);
+new IntersectionObserver(([entry]) => {
+  inView = entry.isIntersecting; lastMotionTick = 0; qualitySamples = []; poorWindows = 0;
+  updateFloatPlayback();
+  if (inView) { updateScroll(false, true); requestRender(); }
+  else { cancelAnimationFrame(frame); frame = 0; }
+}).observe(stage);
 // Reveal only the text on this scene; the photograph remains continuously visible.
 document.documentElement.classList.add('reveal-ready');
 const interludeObserver = new IntersectionObserver(([entry]) => {
@@ -499,13 +588,14 @@ const interludeObserver = new IntersectionObserver(([entry]) => {
 interludeObserver.observe(interlude);
 window.addEventListener('scroll', () => { scrollDirty = true; requestRender(false); }, { passive: true });
 compactLayout.addEventListener('change', () => { placeFeatures(); updateScroll(); resize(true); });
-reduced.addEventListener('change', () => { updateScroll(); resize(true); requestRender(); });
+reduced.addEventListener('change', () => { if (reduced.matches) activateLite('reduced-motion'); updateScroll(); resize(true); requestRender(); });
 document.addEventListener('visibilitychange', () => {
+  lastMotionTick = 0; qualitySamples = []; poorWindows = 0;
   updateFloatPlayback();
   if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
   else requestRender();
 });
-initialize().catch(error => { failed = true; host.dataset.state = 'error'; updateScroll(); console.error('Parcelo 3D:', error); });
+initialize().catch(() => activateLite('graphics-initialization-failed'));
 
 function updateNavigation(sectionTops = navigationSections.map(section => section.getBoundingClientRect().top)) {
   let current = lastDocked ? 'secao-2' : 'secao-1';

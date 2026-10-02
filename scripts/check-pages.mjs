@@ -32,6 +32,14 @@ function check(value, source, mapped = false) {
   if (!files.has(target)) errors.push(`${source}: arquivo ausente ou nome com maiúsculas/minúsculas diferente: ${value}`);
 }
 for (const file of files) {
+  if (/^models\/hero-frames\/(desktop|compact)\.json$/.test(file)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+      if (manifest.version !== 1 || !Array.isArray(manifest.frames) || manifest.frames.length < 2) throw new Error('formato inválido');
+      for (const frame of manifest.frames) check(frame.file, file);
+      check(manifest.bezel, file);
+    } catch (error) { errors.push(file + ': sequência de imagens inválida: ' + error.message); }
+  }
   if (!/\.(?:html|css|js)$/.test(file)) continue;
   const text = fs.readFileSync(path.join(root, file), 'utf8');
   if (file.endsWith('.html')) {
@@ -47,7 +55,7 @@ for (const file of files) {
   }
   if (file.endsWith('.js')) {
     // Bibliotecas contêm exemplos em comentários; examinar seus imports reais.
-    for (const match of text.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g)) {
+    for (const match of text.matchAll(/\b(?:from\s*|import\s*\(\s*)['"]([^'"]+)['"]/g)) {
       const value = match[1];
       if (value === 'three') check('vendor/three/build/three.module.js', file, true);
       else if (value.startsWith('three/addons/')) check(value.replace('three/addons/', 'vendor/three/addons/'), file, true);
