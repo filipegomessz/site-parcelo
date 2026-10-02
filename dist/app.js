@@ -43,7 +43,11 @@ let chapterTransition = null;
 const pairStates = featurePairs.map((_, index) => ({ opacity: index === 0 ? 1 : 0, y: 0 }));
 let layout, modelHalfSize, scrollDirty = false, needsRender = true, lastPose;
 let previousSize = '', activeSection = '', lastDocked, lastIntroHidden;
+let floatAnimation, floatAmplitude = -1;
+let bufferSize = '', readingResolution = false;
 const transmissionWidth = { value: 1 };
+// Bound actual raster work, including large/high-density monitors.
+const MAX_SCENE_PIXELS = 1_000_000;
 const styleCache = new WeakMap();
 function setStyle(element, name, value) {
   let values = styleCache.get(element);
@@ -178,16 +182,24 @@ function updateScroll(queue = true, immediate = false) {
 
 function render(time = 0) {
   if (!ready || failed || !layout) return false;
+  // Keep the four reading screens sharp. During the spin, a lower raster
+  // density avoids spending the frame budget on detail that is moving.
+  // Hysteresis prevents reallocating buffers when scrolling around arrival.
+  if (reduced.matches || progress >= .999) readingResolution = true;
+  else if (progress < .98) readingResolution = false;
+  setSceneResolution();
   const pixels = THREE.MathUtils.lerp(layout.startHeight, layout.endHeight, progress);
   const distance = layout.focal / pixels;
   const x = THREE.MathUtils.lerp(layout.startX, width / 2, progress);
   const y = THREE.MathUtils.lerp(layout.startY, layout.endY, progress);
-  const float = reduced.matches ? 0 : Math.sin(time * .0009) * .008 * (1 - progress);
+  // Reuse the rendered layer for the tiny decorative float. No geometry,
+  // lighting or screen pixels change while the reader is standing still.
+  updateFloat(reduced.matches ? 0 : pixels * .008 * (1 - progress));
   const px = (x - width / 2) / pixels;
   // Account for perspective: the exchange is edge-on to the viewer even
   // while the shared object is still to the right of the camera's center.
   const yaw = motion.yaw - Math.atan2(px, distance) * motion.edge;
-  const pose = [px, (height / 2 - y) / pixels + float, camera.position.z - distance, motion.pitch, yaw, motion.roll, (motion.exchange >= .5 ? screenBrightness : 0), screenIndex, motion.exchange, motion.compress];
+  const pose = [px, (height / 2 - y) / pixels, camera.position.z - distance, motion.pitch, yaw, motion.roll, (motion.exchange >= .5 ? screenBrightness : 0), screenIndex, motion.exchange, motion.compress];
   if (!needsRender && lastPose && pose.every((value, index) => value === lastPose[index])) return false;
   phone.position.set(pose[0], pose[1], pose[2]);
   phone.rotation.set(pose[3], pose[4], pose[5]);
@@ -202,6 +214,28 @@ function render(time = 0) {
   renderer.render(scene, camera);
   lastPose = pose; needsRender = false;
   return true;
+}
+
+function updateFloat(amplitude) {
+  amplitude = Math.round(amplitude * 1000) / 1000;
+  if (floatAmplitude !== amplitude) {
+    floatAmplitude = amplitude;
+    // Use numeric transforms on the existing layer, without a JavaScript
+    // animation loop or CSS variables inside the animated keyframes.
+    const keyframes = Array.from({ length: 33 }, (_, index) => ({
+      transform: `translateY(${(-Math.sin(index * Math.PI / 16) * amplitude).toFixed(4)}px)`
+    }));
+    if (floatAnimation) floatAnimation.effect.setKeyframes(keyframes);
+    else floatAnimation = renderer.domElement.animate(keyframes, { duration: 2 * Math.PI / .0009, iterations: Infinity });
+  }
+  updateFloatPlayback();
+}
+
+function updateFloatPlayback() {
+  if (!floatAnimation) return;
+  const playing = ready && !failed && inView && !document.hidden && !reduced.matches && progress < .999;
+  if (playing && floatAnimation.playState !== 'running') floatAnimation.play();
+  else if (!playing && floatAnimation.playState !== 'paused') floatAnimation.pause();
 }
 
 function tick(time) {
@@ -234,18 +268,29 @@ function tick(time) {
   }
   // Never drop the last chapter update when it lands between two GPU frames.
   const pendingScreen = !lastPose || screenIndex !== lastPose[7] || (motion.exchange >= .5 ? screenBrightness : 0) !== lastPose[6];
-  if (pendingScreen || (!reduced.matches && (movingRaw || progress < .999))) requestRender(false);
+  if (pendingScreen || (!reduced.matches && movingRaw)) requestRender(false);
 }
 function requestRender(force = true) {
   if (force) needsRender = true;
   if (document.hidden) return;
   if (!frame && (scrollDirty || chapterTransition || (ready && inView && !failed))) frame = requestAnimationFrame(tick);
 }
+function setSceneResolution() {
+  const crop = layout.crop;
+  const density = Math.min(devicePixelRatio || 1, readingResolution ? 2 : 1.5);
+  const pixelRatio = Math.min(density, Math.sqrt(MAX_SCENE_PIXELS / (crop.width * crop.height)));
+  const key = [crop.width, crop.height, pixelRatio].join(':');
+  if (key === bufferSize) return;
+  bufferSize = key;
+  renderer.setDrawingBufferSize(crop.width, crop.height, pixelRatio);
+  transmissionWidth.value = Math.floor(width * pixelRatio);
+  needsRender = true;
+}
 function resize(force = false) {
   placeFeatures();
   if (!modelHalfSize) return;
-  const pixelRatio = Math.min(Math.max(devicePixelRatio, 2), width <= 900 ? 2.5 : 3);
-  const key = [width, height, pixelRatio].join(':');
+  const density = Math.min(devicePixelRatio || 1, 2);
+  const key = [width, height, density].join(':');
   if (force !== true && key === previousSize) return;
   previousSize = key;
   layout = sceneLayout(width, height, compactLayout.matches, modelHalfSize, moneyHalfSize);
@@ -253,11 +298,11 @@ function resize(force = false) {
   setStyle(stage, '--cash-x', layout.startX + 'px');
   setStyle(stage, '--cash-y', layout.startY + 'px');
   setStyle(stage, '--cash-width', (layout.startHeight * 1.33) + 'px');
-  // Same pixels per CSS pixel; only empty space is removed from the buffer.
-  renderer.setDrawingBufferSize(crop.width, crop.height, pixelRatio);
+  // Preserve the existing camera crop and CSS size; cap only its raster density.
+  if (force === true) bufferSize = '';
+  setSceneResolution();
   Object.assign(renderer.domElement.style, { position: 'absolute', left: crop.x + 'px', top: crop.y + 'px', width: crop.width + 'px', height: crop.height + 'px' });
   camera.setViewOffset(width, height, crop.x, crop.y, crop.width, crop.height);
-  transmissionWidth.value = Math.floor(width * pixelRatio);
   setStyle(stage, '--dock-phone-width', (layout.endHeight * (.0776 / .1628)) + 'px');
   updateScroll(false);
   requestRender();
@@ -425,11 +470,13 @@ async function initialize() {
   updateScroll(false);
   requestRender();
   host.dataset.state = 'ready';
+  updateFloatPlayback();
   host.dataset.model = 'maco-100-reais + galaxy-s25-ultra';
   new ResizeObserver(resize).observe(stage);
-  new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; if (inView) requestRender(); else { cancelAnimationFrame(frame); frame = 0; } }).observe(stage);
+  new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; updateFloatPlayback(); if (inView) requestRender(); else { cancelAnimationFrame(frame); frame = 0; } }).observe(stage);
   renderer.domElement.addEventListener('webglcontextlost', event => {
     event.preventDefault(); failed = true; cancelAnimationFrame(frame); frame = 0; host.dataset.state = 'error';
+    updateFloatPlayback();
     applyProgress(targetRaw);
   });
   renderer.domElement.addEventListener('webglcontextrestored', () => {
@@ -454,6 +501,7 @@ window.addEventListener('scroll', () => { scrollDirty = true; requestRender(fals
 compactLayout.addEventListener('change', () => { placeFeatures(); updateScroll(); resize(true); });
 reduced.addEventListener('change', () => { updateScroll(); resize(true); requestRender(); });
 document.addEventListener('visibilitychange', () => {
+  updateFloatPlayback();
   if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
   else requestRender();
 });
