@@ -1,4 +1,5 @@
 import { HandoffMotion } from './handoff-motion.js';
+import { screenSources, prepareScreens, loadScreen } from './screen-assets.js';
 import { LiteScene } from './lite-scene.js';
 import { sceneLayout } from './phone-layout.js';
 import { transitionPose, HANDOFF_AT, DOCK_AT } from './money-transition.js';
@@ -6,9 +7,14 @@ import { transitionPose, HANDOFF_AT, DOCK_AT } from './money-transition.js';
 const experience = document.querySelector('.scene-track');
 const intro = document.querySelector('.hero-intro');
 const stage = document.querySelector('.stage');
+const sceneShade = stage.querySelector('.shade');
+const sceneProgressFill = stage.querySelector('.scene-progress span');
 const host = document.querySelector('.phone-scene');
 const features = document.querySelector('.feature-layout');
 const featurePairs = [...features.querySelectorAll('.feature-pair')];
+// These cards contain text only. aria-hidden controls their accessibility
+// until arrival; remove the inherited inert styles during initial setup.
+features.inert = false;
 const chapterRail = document.querySelector('.chapter-rail');
 const chapterBars = [...chapterRail.querySelectorAll('.chapter-rail-bars span')];
 const chapterCount = chapterRail.querySelector('.chapter-count');
@@ -29,15 +35,15 @@ let renderer, scene, camera, phone, phoneModel, moneyModel, screenMaterial, envi
 let liteScene, lite = false, lastMotionTick = 0, qualitySamples = [], poorWindows = 0, severeFrames = 0, monitoringAfter = Infinity;
 function paintLite() {
   liteScene?.update({ width, height, compact: compactLayout.matches, raw: visualRaw, exchanging: handoffMotion.active,
-    reduced: reduced.matches, chapter: activeChapter, brightness: screenBrightness });
+    reduced: reduced.matches, chapter: activeChapter, brightness: screenBrightness, chapterProgress: readingProgress });
 }
 function activateLite(reason) {
   if (lite) return;
   lite = true; failed = true; ready = false;
   cancelAnimationFrame(frame); frame = 0;
   floatAnimation?.cancel(); floatAnimation = undefined;
-  document.documentElement.dataset.renderMode = 'lite';
-  host.dataset.mode = 'lite'; host.dataset.reason = reason; host.dataset.state = 'error';
+  document.documentElement.dataset.renderMode = 'prepared';
+  host.dataset.mode = 'prepared'; host.dataset.reason = reason; host.dataset.state = 'ready';
   // A downgrade is permanent for this visit: no expensive quality oscillation.
   if (renderer) {
     const geometries = new Set(), materials = new Set(), textures = new Set(screenTextures);
@@ -78,21 +84,19 @@ const handoffMotion = new HandoffMotion();
 let visualRaw = 0;
 let moneyHalfSize, motion = transitionPose(0);
 const handoff = { value: 0 };
-const screenSources = [
-  './Imagens/app-home.jpg',
-  './Imagens/app-cartoes-parcelas.jpg',
-  './Imagens/app-compromissos-informais.jpg',
-  './Imagens/app-pra-cancelar.jpg',
-];
 let screenTextures = [];
 const fallbackScreens = screenSources;
 let frame = 0, lastFrame = 0, lastTick = 0, progress = 0, width = 0, height = 0;
 let targetRaw = 0, displayedRaw = 0;
 let screenBrightness = 1, screenIndex = 0, activeChapter = 0;
-let chapterTransition = null;
+let chapterTransition = null, readingProgress = 0;
 const pairStates = featurePairs.map((_, index) => ({ opacity: index === 0 ? 1 : 0, y: 0 }));
+const preparedPairs = new Set([0]);
 let layout, modelHalfSize, scrollDirty = false, needsRender = true, lastPose;
 let previousSize = '', activeSection = '', lastDocked, lastIntroHidden;
+let panelsPrepared = false;
+let opaqueBackdropTimer;
+let panelEntranceAnimations = [];
 let floatAnimation, floatAmplitude = -1;
 let bufferSize = '', readingResolution = false;
 const transmissionWidth = { value: 1 };
@@ -129,18 +133,24 @@ function advanceChapter(time = performance.now()) {
     const opacity = from ? MathUtils.lerp(from.opacity, target, blend) : target;
     const shift = from ? MathUtils.lerp(from.y, target ? 0 : -18 * transition.direction, blend) : 0;
     pairStates[index] = { opacity, y: shift };
-    setStyle(pair, 'content-visibility', opacity > 0 ? 'visible' : 'hidden');
-    setStyle(pair, '--pair-opacity', opacity.toFixed(3));
-    setStyle(pair, '--pair-y', shift.toFixed(1) + 'px');
-    setStyle(pair, '--pair-blur', (reduced.matches ? 0 : (1 - opacity) * 4).toFixed(1) + 'px');
+    setStyle(pair, 'content-visibility', opacity > 0 || preparedPairs.has(index) ? 'visible' : 'hidden');
+    setStyle(pair, 'opacity', opacity.toFixed(3));
+    setStyle(pair, 'transform', `translateY(${shift.toFixed(1)}px)`);
+    // Keep the existing fade and displacement. Filtering the entire text pair
+    // created a new offscreen surface at each chapter change; the resting
+    // appearance, typography and glass backgrounds are unchanged.
+    setStyle(pair, 'filter', 'none');
   });
   setStyle(fallbackImage, '--screen-brightness', screenBrightness.toFixed(3));
   if (fraction === 1) chapterTransition = null;
-  if (lite) paintLite();
   stage.dataset.transitioning = String(Boolean(chapterTransition));
 }
 
 function applyChapter(scrollProgress = 0) {
+  readingProgress = scrollProgress;
+  const chapterPosition=scrollProgress*4,following=Math.floor(chapterPosition)+1;
+  if(following<4&&chapterPosition%1>=.65)preparedPairs.add(following);
+  prepareScreens(targetRaw, scrollProgress);
   // Exact same quarters as the four visible progress segments, both ways.
   const nextIndex = Math.min(3, Math.floor(scrollProgress * 4));
   chapterBars.forEach((bar, index) => setStyle(bar, '--fill', MathUtils.clamp(scrollProgress * 4 - index, 0, 1).toFixed(6)));
@@ -165,7 +175,7 @@ function applyChapter(scrollProgress = 0) {
       if (inactive) pair.setAttribute('aria-hidden', 'true');
       else pair.removeAttribute('aria-hidden');
     });
-    if (fallbackScreens[nextIndex]) fallbackImage.src = fallbackScreens[nextIndex];
+    if (targetRaw >= .20 && fallbackScreens[nextIndex]) loadScreen(nextIndex).then(image => { if(activeChapter === nextIndex) fallbackImage.src = image.src; }).catch(() => {});
   }
   if (reduced.matches) chapterTransition = null;
   advanceChapter();
@@ -176,11 +186,12 @@ function applyProgress(raw, { time = performance.now(), settle = false, exact = 
   motion = transitionPose(visualRaw, reduced.matches);
   setData('exchanging', String(handoffMotion.active));
   progress = motion.approach;
-  setStyle(stage, '--progress', progress.toFixed(4));
-  setStyle(stage, '--scroll-progress', (reduced.matches ? 1 : Math.min(raw / DOCK_AT, 1)).toFixed(4));
+  // Paint the changing pixels directly. Inherited stage variables invalidated
+  // every text/panel descendant on each step, even when its pixels were still.
+  setStyle(sceneShade, 'opacity', progress.toFixed(4));
+  if (sceneProgressFill) setStyle(sceneProgressFill, 'transform', `scaleX(${(reduced.matches ? 1 : Math.min(raw / DOCK_AT, 1)).toFixed(4)})`);
   const exit = ease(MathUtils.clamp(raw / .17, 0, 1));
-  setStyle(intro, '--intro-opacity', (1 - exit).toFixed(3));
-  setStyle(intro, '--intro-exit', exit.toFixed(3));
+  setStyle(intro, 'opacity', (1 - exit).toFixed(3));
   const hideIntro = !reduced.matches && !compactLayout.matches && raw >= .17;
   if (lastIntroHidden !== hideIntro) {
     lastIntroHidden = hideIntro; intro.inert = hideIntro;
@@ -191,28 +202,47 @@ function applyProgress(raw, { time = performance.now(), settle = false, exact = 
   setData('turn', (-motion.yaw * 180 / Math.PI).toFixed(1));
   setData('progress', raw.toFixed(4));
   setData('screen', motion.exchange >= .5 ? 'on' : 'off');
-  setStyle(stage, '--cash-visible', motion.exchange < .5 ? '1' : '0');
+  // Prepared poses already own cash visibility; fallback layers are hidden.
+  if (!lite) setStyle(stage, '--cash-visible', motion.exchange < .5 ? '1' : '0');
+  if (!panelsPrepared && raw >= .30) {
+    panelsPrepared = true;
+    stage.classList.add('is-prepared');
+    if (!compactLayout.matches && !reduced.matches) {
+      panelEntranceAnimations = [...featurePairs[0].querySelectorAll('.glass-panel')].map((panel, index) => {
+        const y = index ? -28 : 28;
+        const animation = panel.animate([
+          { transform: `translate(calc(${index ? '' : '-'}50vw ${index ? '+' : '-'} 100%),${y}px)` },
+          { transform: `translate(0,${y}px)` }
+        ], { duration: 1050, delay: index ? 100 : 0, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' });
+        animation.pause(); animation.currentTime = 1151;
+        return animation;
+      });
+    }
+  }
   // The last 18% of the pinned scene is a still interval for reading the cards.
-  if (lite) paintLite();
   const docked = (ready || failed) && (reduced.matches ? motion.exchange === 1 : raw >= DOCK_AT);
   if (lastDocked !== docked) {
     lastDocked = docked;
     stage.classList.toggle('is-docked', docked);
-    features.inert = !docked;
     if (docked) {
+      panelEntranceAnimations.forEach(animation => {
+        if (reduced.matches || compactLayout.matches) { animation.pause(); animation.currentTime = 1151; }
+        else { animation.currentTime = 0; animation.play(); }
+      });
+      document.dispatchEvent(new CustomEvent('parcelo:panels-arriving', { detail: { duration: compactLayout.matches ? 520 : 1170 } }));
       features.removeAttribute('aria-hidden');
       chapterRail.removeAttribute('aria-hidden');
     } else {
+      panelEntranceAnimations.forEach(animation => { animation.pause(); animation.currentTime = 1151; });
       features.setAttribute('aria-hidden', 'true');
       chapterRail.setAttribute('aria-hidden', 'true');
     }
-    // Follow the visible phone and copy, including the smoothed approach.
-    updateNavigation();
+    // updateScroll updates navigation with positions read before these writes.
   }
 }
 
 function updateScroll(queue = true, immediate = false) {
-  // Read layout together before changing any styles or attributes.
+  // Read layout together before changing styles or attributes.
   const sceneRect = experience.getBoundingClientRect();
   const scrolled = Math.max(0, -sceneRect.top);
   const travel = approachTravel();
@@ -225,8 +255,17 @@ function updateScroll(queue = true, immediate = false) {
   const chapterTravel = Math.max(1, sceneRect.height - height - chapterStart);
   applyChapter(MathUtils.clamp((scrolled - chapterStart) / chapterTravel, 0, 1));
   if (immediate) { chapterTransition = null; advanceChapter(); }
-  if (immediate || !ready || failed || reduced.matches || !inView) {
-    displayedRaw = targetRaw; applyProgress(displayedRaw, { settle: immediate || !inView });
+  displayedRaw = targetRaw;
+  applyProgress(displayedRaw, { settle: immediate || !inView });
+  // At the reading dock the backdrop is the opaque #020e0b shade. Blurring
+  // and saturating that uniform color needs no repeated sampling pass.
+  const opaqueBackdrop = targetRaw >= DOCK_AT && sceneRect.top <= 0 && sceneRect.bottom >= height;
+  clearTimeout(opaqueBackdropTimer);
+  if (!opaqueBackdrop) document.documentElement.classList.remove('is-opaque-hero');
+  else if (!document.documentElement.classList.contains('is-opaque-hero')) {
+    // Keep the already rastered navigation during arrival. Consolidate its
+    // uniform backdrop only after the wheel and the panel entrance are quiet.
+    opaqueBackdropTimer = setTimeout(() => document.documentElement.classList.add('is-opaque-hero'), 1250);
   }
   updateNavigation(sectionTops);
   qr.classList.toggle('is-opening-hidden', !lastDocked && sceneRect.bottom > 0);
@@ -458,11 +497,12 @@ async function initialize() {
   const rim = new THREE.DirectionalLight(0xffffff, .65); rim.position.set(4, 2, -3); scene.add(rim);
   camera = new THREE.PerspectiveCamera(fov, 1, .05, 50);
   camera.position.z = 6;
-  const [gltf, textures, moneyGltf] = await Promise.all([
-    new GLTFLoader().loadAsync('./models/galaxy-s25-ultra.glb'),
-    Promise.all(screenSources.map(source => new THREE.TextureLoader().loadAsync(source))),
-    new GLTFLoader().loadAsync('./models/maco-100-reais.glb'),
-  ]);
+  const { MeshoptDecoder } = await import('./vendor/meshopt/meshopt_decoder.module.js');
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const moneyGltf = await loader.loadAsync('./models/maco-100-reais-meshopt.glb');
+  const gltf = await loader.loadAsync('./models/galaxy-s25-ultra-meshopt.glb');
+  const firstTexture = await new THREE.TextureLoader().loadAsync(screenSources[0]);
+  const textures = Array(4).fill(firstTexture);
   if (lite) {
     const texturesToDispose = new Set(textures);
     for (const asset of [gltf.scene, moneyGltf.scene]) asset.traverse(object => {
@@ -595,7 +635,9 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
   else requestRender();
 });
-initialize().catch(() => activateLite('graphics-initialization-failed'));
+// Prepared original-model poses are the stable presentation for this visit.
+// GPU initialization is retained for controlled comparisons, never the scroll path.
+activateLite('prepared-first');
 
 function updateNavigation(sectionTops = navigationSections.map(section => section.getBoundingClientRect().top)) {
   let current = lastDocked ? 'secao-2' : 'secao-1';
@@ -617,4 +659,3 @@ for (const link of document.querySelectorAll('[data-focus-phone]')) {
     history.replaceState(null, '', '#secao-2');
   });
 }
-updateScroll();

@@ -123,7 +123,7 @@ h1,h2{letter-spacing:-.035em}
 .story-viewer-toolbar .story-control{width:44px;height:44px}
 .story-viewer-frame{width:min(100%,420px,calc((100dvh - 100px)/2.067));min-width:min(100%,300px);margin:auto}
 .story-viewer-frame .story-frame{box-shadow:none}
-body:has(.story-viewer[open]){overflow:hidden}
+body.is-story-open{overflow:hidden}
 @media(hover:hover){.store-pill:hover .play-mark{transform:translateX(2px)}.play-mark{transition:transform .2s}}
 @media(max-width:700px){.story-tools{gap:12px}.story-tools p{font-size:12px;max-width:21ch}.story-viewer{border-radius:12px}}
 @media(prefers-reduced-motion:reduce){.story-control,.play-mark{transition:none}}
@@ -264,6 +264,14 @@ body:has(.story-viewer[open]){overflow:hidden}
 .nav-lens::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(ellipse at var(--lens-light,50%) 0%,#ffffff36,transparent 64%);box-shadow:inset 0 0 0 1px #ffffff21}
 .nav-lens-content{position:absolute;left:0;top:0;transform-origin:var(--lens-center-x) var(--lens-center-y);transform:translate3d(calc(-1 * var(--lens-x)),calc(-1 * var(--lens-y)),0) scale(var(--lens-zoom,1.045));pointer-events:none}
 .nav-lens-label{position:absolute;display:flex;align-items:center;justify-content:center;white-space:nowrap;color:#fff;text-shadow:0 1px 5px #00120ee6}
+.nav-lens{contain:layout paint;will-change:transform}
+.nav-lens-content{contain:layout paint;will-change:transform}
+
+/* Separate the unchanged glass backdrop from the moving lens/label layers.
+   Lens movement no longer invalidates the parent backdrop render pass. */
+.glass-nav{background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.glass-nav::after{content:"";position:absolute;z-index:-2;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,#ffffff16,#ffffff05 48%,#d4ffed0d);backdrop-filter:blur(12px) saturate(1.35);-webkit-backdrop-filter:blur(12px) saturate(1.35)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.glass-nav::after{background:#122a22f2}}
 
 /* Keep the native disclosure visible until its closing animation finishes. */
 .faq-item.faq-enhanced{overflow:hidden}
@@ -283,7 +291,7 @@ body:has(.story-viewer[open]){overflow:hidden}
 .hero-intro,.hero-intro p,.hero-intro .store-label,.hero-intro .store-label strong,.qr-dock,.qr-dock p,.qr-dock>span{font-family:'Archivo','Manrope',sans-serif;font-weight:400}
 
 
-.qr-dock.is-opening-hidden{display:none}
+.qr-dock.is-opening-hidden{visibility:hidden;opacity:0;pointer-events:none}
 
 .glass-nav{font-family:'Manrope',sans-serif}
 .glass-nav a{font-weight:700}
@@ -306,3 +314,44 @@ html[data-render-mode="lite"] .phone-fallback img{filter:none}
 .lite-object{z-index:2}
 .lite-screen{z-index:1}
 .phone-scene:not([data-frames="ready"]) .lite-object{visibility:hidden}
+
+.lite-object{overflow:hidden}
+.lite-object{transform-origin:0 0}
+
+.lite-object canvas{display:block;width:100%;height:100%}
+
+/* Same dimensions/visuals; unopened chapters need no text layout. */
+.stage{contain:layout paint size}
+.feature-pair[aria-hidden="true"]{content-visibility:hidden}
+
+/* Reuse the same prepared layer for the approved subtle float. */
+.prepared-float{position:absolute;inset:0;pointer-events:none;animation:prepared-float 6981ms cubic-bezier(.37,0,.63,1) infinite}
+@keyframes prepared-float{0%,50%,100%{transform:translateY(0)}25%{transform:translateY(calc(-1 * var(--prepared-float,0px)))}75%{transform:translateY(var(--prepared-float,0px))}}
+@media(prefers-reduced-motion:reduce){.prepared-float{animation:none}}
+
+.prepared-float{z-index:2}
+
+/* Prepare the existing glass layers before their entrance, preserving their pixels. */
+.feature-layout{will-change:opacity}
+.feature-pair .glass-panel{will-change:transform,opacity}
+.feature-pair[aria-hidden="true"] .glass-panel{will-change:auto}
+.feature-pair .glass-panel{position:relative;isolation:isolate;background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.feature-pair .glass-panel::before{content:"";position:absolute;z-index:-1;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(145deg,#a1c0ac20,#143c2d58 60%,#759d8914),#030e0b}
+/* A blur over a uniform opaque backdrop is exactly the same uniform color.
+   Use its saturated color only during this dock; keep real glass elsewhere. */
+html.is-opaque-hero .glass-nav::after{backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(115deg,#ffffff16,#ffffff05 48%,#d4ffed0d),#000f0b}
+
+/* Warm the exact existing glass and text before arrival. Entrance motion and
+   final pixels are retained; .001 alpha is only a raster preparation layer. */
+.stage.is-prepared:not(.is-docked) .feature-pair:first-child .glass-panel{visibility:visible;opacity:.001;transition:none;will-change:transform,opacity}
+@media(min-width:1101px){
+  .stage.is-prepared:not(.is-docked) .feature-pair:first-child .glass-panel-left{transform:translate(0,28px)}
+  .stage.is-prepared:not(.is-docked) .feature-pair:first-child .glass-panel-right{transform:translate(0,-28px)}
+}
+@media(max-width:1100px){.stage.is-prepared:not(.is-docked) .feature-layout{opacity:.001}}
+@media(prefers-reduced-motion:reduce){.stage.is-prepared .feature-pair:first-child .glass-panel{animation:none!important}}
+@media(max-width:700px){
+  .prepared-float{animation:none}
+  .glass-nav::after{backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(115deg,#ffffff16,#ffffff05 48%,#d4ffed0d),#051a12d6}
+  .feature-pair{filter:none!important}
+}

@@ -261,10 +261,11 @@
   left: 0;
   width: 100%;
   aspect-ratio: 365 / 694;
-  background: url('Imagens/beneficios-story.png') center / cover no-repeat;
+  background: center / cover no-repeat;
   transform: scaleY(-1);
   filter: blur(1.5px);
 }
+.stories-section.is-near .story-reflection::before{background-image:url('assets/optimized/story-reflection-768.webp')}
 .story-tools { max-width: 1510px; margin-top: 0; }
 .story-tools[data-overflow="false"] { display: none; }
 .story-viewer-frame { width: min(100%, 420px, calc((100dvh - 100px) * 365 / 694)); min-width: 0; }
@@ -308,3 +309,9 @@
 
 
 .story-copy-download { font-size: 13.3cqw; }
+
+/* Fit complete frames and reflections below the fixed navigation. */
+@media(min-width:1101px){
+  .stories-section{padding-top:104px;padding-bottom:36px;scroll-margin-top:-100px;--story-gap:clamp(16px,1.25vw,24px)}
+  .story-gallery{width:min(100%,1510px,calc((100svh - 156px) * 1.805 + var(--story-gap) * 3));margin-inline:auto}
+}

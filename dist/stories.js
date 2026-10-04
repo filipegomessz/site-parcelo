@@ -1,4 +1,8 @@
 const gallery = document.querySelector('.story-gallery');
+const reflectionObserver=new IntersectionObserver(([entry])=>{
+  if(entry.isIntersecting){gallery.closest('.stories-section').classList.add('is-near');reflectionObserver.disconnect();}
+},{rootMargin:'100% 0px'});
+reflectionObserver.observe(gallery.closest('.stories-section'));
 const frames = [...gallery.querySelectorAll('.story-frame')];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const arrow = direction => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${direction === 'left' ? 'M19 12H5m6-6-6 6 6 6' : 'M5 12h14m-6-6 6 6-6 6'}"/></svg>`;
@@ -48,13 +52,16 @@ frames.forEach((frame, index) => {
   const open = document.createElement('button');
   open.type = 'button';
   open.className = 'story-open';
-  const description = frame.querySelector('.story-copy')?.innerText.replace(/\s+/g, ' ').trim() || frame.querySelector('.story-content img')?.alt;
+  // Accessible labels need text only. innerText forced layout after each
+  // appended button, rebuilding the page four times during hero startup.
+  const description = frame.querySelector('.story-copy')?.textContent.replace(/\s+/g, ' ').trim() || frame.querySelector('.story-content img')?.alt;
   open.setAttribute('aria-label', `Ampliar story ${index + 1}${description ? ': ' + description : ' do Parcelô'}`);
   open.setAttribute('aria-haspopup', 'dialog');
   open.addEventListener('click', () => {
     opener = open;
     show(index);
     viewer.showModal();
+    document.body.classList.add('is-story-open');
     close.focus({ preventScroll: true });
   });
   frame.append(open);
@@ -62,7 +69,7 @@ frames.forEach((frame, index) => {
 previous.addEventListener('click', () => show(current - 1));
 next.addEventListener('click', () => show(current + 1));
 close.addEventListener('click', () => viewer.close());
-viewer.addEventListener('close', () => { content.replaceChildren(); opener?.focus({ preventScroll: true }); });
+viewer.addEventListener('close', () => { document.body.classList.remove('is-story-open'); content.replaceChildren(); opener?.focus({ preventScroll: true }); });
 viewer.addEventListener('keydown', event => {
   if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
     event.preventDefault();
@@ -99,4 +106,4 @@ scrollBack.addEventListener('click', () => move(-1));
 scrollNext.addEventListener('click', () => move(1));
 gallery.addEventListener('scroll', updateControls, { passive: true });
 new ResizeObserver(updateControls).observe(gallery);
-updateControls();
+// ResizeObserver supplies the first measurement after the DOM writes settle.

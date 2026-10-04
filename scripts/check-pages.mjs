@@ -15,6 +15,19 @@ function walk(directory, prefix = '') {
 }
 walk(root);
 if (!files.has('index.html')) errors.push('dist/index.html não encontrado.');
+// Validate embedded poses as well as the external manifests. They must share
+// geometry measurements and filenames so a resolution upgrade cannot jump.
+try {
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const embedded=html.match(/<script type="application\/json" id="critical-poses">([\s\S]*?)<\/script>/);
+ if(embedded)for(const [variant,pack] of Object.entries(JSON.parse(embedded[1]))) {
+   const manifest=JSON.parse(fs.readFileSync(path.join(root,'models/hero-frames/'+variant+'.json'),'utf8'));
+   if(JSON.stringify(manifest)!==JSON.stringify(pack.manifest))errors.push('Poses embutidas diferem de '+variant+'.json');
+   if(pack.thumbs.length!==manifest.frames.length||!pack.atlas.startsWith('data:image/webp;base64,'))errors.push('Atlas inicial inválido: '+variant);
+   if(pack.thumbs.some(t=>t.x<0||t.y<0||t.w<=0||t.h<=0||t.x+t.w>pack.width||t.y+t.h>pack.height))errors.push('Pose inicial fora do atlas: '+variant);
+ }
+} catch(error){errors.push('Poses embutidas inválidas: '+error.message);}
+
 let checked = 0;
 function check(value, source, mapped = false) {
   value = value.trim().replaceAll('&amp;', '&');
@@ -32,6 +45,19 @@ function check(value, source, mapped = false) {
   if (!files.has(target)) errors.push(`${source}: arquivo ausente ou nome com maiúsculas/minúsculas diferente: ${value}`);
 }
 for (const file of files) {
+  if (/^assets\/hero-hd\/(desktop|wide|compact|tablet)(?:-1x)?\.json$/.test(file)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+      if (manifest.version !== 1 || manifest.frames.length !== 81) throw new Error('81 poses esperadas');
+      const original = JSON.parse(fs.readFileSync(path.join(root, 'models/hero-frames/' + manifest.variant + '.json'), 'utf8'));
+      for (const [index, frame] of manifest.frames.entries()) {
+        if (frame.index !== index || frame.raw !== original.frames[index].raw) throw new Error('ângulo diferente da pose pequena');
+        if (frame.width <= 0 || frame.height <= 0) throw new Error('dimensão inválida');
+        check(frame.file, file); check(frame.webp, file);
+      }
+      check(manifest.bezel.file, file); check(manifest.bezel.webp, file);
+    } catch (error) { errors.push(file + ': sequência HD inválida: ' + error.message); }
+  }
   if (/^models\/hero-frames\/(desktop|compact)\.json$/.test(file)) {
     try {
       const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));

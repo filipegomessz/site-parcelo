@@ -9,6 +9,7 @@
   let perimeter = 0;
   let phase = .08;
   let visible = false;
+  let prepared = false;
   let frame = 0;
   let previousTime = null;
   let measuredWidth = 0;
@@ -53,6 +54,7 @@
   }
 
   function measure() {
+    if (!prepared) return;
     const { width, height } = button.getBoundingClientRect();
     if (width <= 2 || height <= 2 || (width === measuredWidth && height === measuredHeight)) return;
     measuredWidth = width;
@@ -71,6 +73,11 @@
   }
 
   new ResizeObserver(measure).observe(button);
+  const preparationObserver = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) return;
+    prepared = true; measure(); preparationObserver.disconnect();
+  }, { rootMargin: '100% 0px' });
+  preparationObserver.observe(button);
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     updatePlayback();

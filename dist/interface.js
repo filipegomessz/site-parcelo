@@ -78,12 +78,25 @@ motionPreference.addEventListener('change', () => {
 });
 
 const glassNavigation = document.querySelector('.glass-nav');
-if (glassNavigation) {
+function initializeGlassNavigation() {
+  if (!glassNavigation) return;
   const links = [...glassNavigation.querySelectorAll('a:not(.nav-brand)')];
+  let panelEntranceUntil = 0, automaticLensTimer, scrollBusy = false, scrollQuietTimer;
+  window.addEventListener('scroll', () => {
+    scrollBusy = true;
+    clearTimeout(scrollQuietTimer);
+    scrollQuietTimer = setTimeout(() => { scrollBusy = false; followCurrentSection(); }, 180);
+  }, { passive: true });
+  document.addEventListener('parcelo:panels-arriving', event => {
+    panelEntranceUntil = performance.now() + (event.detail?.duration || 0);
+  });
   const lens = document.createElement('div');
   lens.className = 'nav-lens';
   lens.setAttribute('aria-hidden', 'true');
   const lensContent = document.createElement('div');
+  // Raster the magnified labels once at their maximum scale; subsequent
+  // automatic lens travel only downsamples this already prepared layer.
+  const lensRasterScale = 1.25;
   lensContent.className = 'nav-lens-content';
   lens.append(lensContent);
   const labels = links.map(link => {
@@ -115,15 +128,24 @@ if (glassNavigation) {
     position = value;
     lensEnergy = energy;
     lensDirection = direction;
-    glassNavigation.style.setProperty('--lens-x', `${value.x}px`);
-    glassNavigation.style.setProperty('--lens-width', `${value.width}px`);
-    glassNavigation.style.setProperty('--lens-y', `${value.y}px`);
-    glassNavigation.style.setProperty('--lens-height', `${value.height}px`);
-    glassNavigation.style.setProperty('--lens-zoom', String(1.045 + energy * .175));
-    glassNavigation.style.setProperty('--lens-lift', String(1 + energy * .09));
-    glassNavigation.style.setProperty('--lens-light', `${50 - direction * energy * 24}%`);
-    glassNavigation.style.setProperty('--lens-center-x', `${value.x + value.width / 2}px`);
-    glassNavigation.style.setProperty('--lens-center-y', `${value.y + value.height / 2}px`);
+    // The same optics, scoped to the moving pixels. Inherited variables on the
+    // whole nav used to invalidate every descendant during the arrival.
+    const zoom = 1.045 + energy * .175;
+    const cx = value.x + value.width / 2, cy = value.y + value.height / 2;
+    Object.assign(lens.style, {
+      transform: `translate3d(${value.x}px,0,0) scaleY(${1 + energy * .09})`,
+      top: `${value.y}px`, width: `${value.width}px`, height: `${value.height}px`
+    });
+    lens.style.setProperty('--lens-light', `${50 - direction * energy * 24}%`);
+    lensContent.style.transformOrigin = '0 0';
+    lensContent.style.transform = `translate3d(${-value.x + cx * (1 - zoom)}px,${-value.y + cy * (1 - zoom)}px,0) scale(${zoom/lensRasterScale})`;
+    labels.forEach(({link,label}) => {
+      const labelX = layout.get(link)?.labelX;
+      if (labelX === undefined) return;
+      const left=value.x-labelX, right=left+value.width;
+      const mask=`linear-gradient(90deg,#000 ${left+3}px,transparent ${left+9}px,transparent ${right-9}px,#000 ${right-3}px)`;
+      label.style.maskImage=mask;label.style.webkitMaskImage=mask;
+    });
   }
 
   function moveLens(link, immediate = false) {
@@ -176,17 +198,18 @@ if (glassNavigation) {
     }));
     layout = new Map();
     measurements.forEach(({ link, label, magnifiedLabel, bounds, labelBounds, font }) => {
-      const box = { x: bounds.left - originX, y: bounds.top - originY, width: bounds.width, height: bounds.height };
+      const box = { x: bounds.left - originX, y: bounds.top - originY, width: bounds.width, height: bounds.height, labelX: labelBounds.left - originX };
       layout.set(link, box);
       label.style.setProperty('--label-x', `${labelBounds.left - originX}px`);
       Object.assign(magnifiedLabel.style, {
-        left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, height: `${box.height}px`,
-        fontFamily: font.fontFamily, fontSize: font.fontSize, fontWeight: font.fontWeight,
-        lineHeight: font.lineHeight, letterSpacing: font.letterSpacing
+        left: `${box.x*lensRasterScale}px`, top: `${box.y*lensRasterScale}px`, width: `${box.width*lensRasterScale}px`, height: `${box.height*lensRasterScale}px`,
+        fontFamily: font.fontFamily, fontSize: `${parseFloat(font.fontSize)*lensRasterScale}px`, fontWeight: font.fontWeight,
+        lineHeight: `${parseFloat(font.lineHeight)*lensRasterScale}px`, letterSpacing: font.letterSpacing==='normal'?'normal':`${parseFloat(font.letterSpacing)*lensRasterScale}px`,
+        textShadow: `0 ${lensRasterScale}px ${5*lensRasterScale}px #00120ee6`
       });
     });
-    lensContent.style.width = `${glassNavigation.clientWidth}px`;
-    lensContent.style.height = `${glassNavigation.clientHeight}px`;
+    lensContent.style.width = `${glassNavigation.clientWidth*lensRasterScale}px`;
+    lensContent.style.height = `${glassNavigation.clientHeight*lensRasterScale}px`;
     moveLens(pendingLink || selectedLink, true);
     glassNavigation.classList.add('has-liquid-lens');
   }
@@ -195,6 +218,15 @@ if (glassNavigation) {
     if (drag) return;
     const current = links.find(link => link.hasAttribute('aria-current')) || links[0];
     if (pendingLink && current !== pendingLink) return;
+    if (!pendingLink && scrollBusy && !motionPreference.matches) return;
+    clearTimeout(automaticLensTimer);
+    // The active link changes immediately. Only its decorative glass travel
+    // waits for the panels to finish, avoiding concurrent backdrop passes.
+    const remaining=panelEntranceUntil-performance.now();
+    if (!pendingLink && current.hash==='#secao-2' && remaining>0 && !motionPreference.matches) {
+      automaticLensTimer=setTimeout(followCurrentSection,remaining+16);
+      return;
+    }
     pendingLink = null;
     clearTimeout(pendingTimer);
     moveLens(current);
@@ -342,6 +374,24 @@ if (glassNavigation) {
     if (document.hidden) { cancelDrag(); moveLens(selectedLink, true); }
   });
   measureNavigation();
+}
+// The opening pose can turn before decorative navigation is rastered. Set up
+// the lens on a quiet frame, or immediately before a direct nav interaction.
+if (glassNavigation) {
+  let initialized = false, preparationTimer;
+  const prepare = () => {
+    if (initialized) return;
+    initialized = true; clearTimeout(preparationTimer);
+    window.removeEventListener('scroll', queuePreparation);
+    glassNavigation.removeEventListener('pointerdown', prepare, true);
+    glassNavigation.removeEventListener('focusin', prepare, true);
+    initializeGlassNavigation();
+  };
+  const queuePreparation = () => { clearTimeout(preparationTimer); preparationTimer = setTimeout(prepare, 350); };
+  window.addEventListener('scroll', queuePreparation, { passive: true });
+  glassNavigation.addEventListener('pointerdown', prepare, true);
+  glassNavigation.addEventListener('focusin', prepare, true);
+  queuePreparation();
 }
 document.querySelectorAll('[data-current-year]').forEach(element => {
   element.textContent = String(new Date().getFullYear());
