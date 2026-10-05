@@ -6,6 +6,10 @@ export const screenSources = (innerWidth <= 1100 || ((devicePixelRatio||1)<=1.05
 const pending = new Map();
 export function loadScreen(index) {
   if (!pending.has(index)) {
+    const startup=window.__parceloStartup;
+    if(index===0&&startup?.screenReady&&startup.screenHref===screenSources[0]){
+      const promise=startup.screenReady.catch(error=>{pending.delete(index);throw error;});pending.set(index,promise);return promise;
+    }
     const image = new Image(); image.decoding = 'async';
     image.src = screenSources[index];
     const promise = image.decode().then(() => image).catch(error => { pending.delete(index); throw error; });

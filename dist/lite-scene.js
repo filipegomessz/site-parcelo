@@ -58,7 +58,7 @@ export class LiteScene {
     if(!reduced){nearby.push(wanted+ahead*direction);for(let offset=1;offset<=ahead+2;offset++)nearby.push(wanted+offset*direction);for(let offset=1;offset<=2;offset++)nearby.push(wanted-offset*direction);}
     if(raw>=.24)nearby.push(last,frames.length);
     this.queue=[...new Set(nearby)].filter(i=>i>=0&&i<=frames.length&&!this.quality.get(i)&&!this.cache.has(i)&&!this.pending.has(i)&&!this.badFrames.has(i));
-    this.pump(); prepareScreens(raw,chapterProgress);
+    if(this.quality.fallbackRequired(wanted))this.pump(); prepareScreens(raw,chapterProgress);
     const docked=motion.approach===1;
     // The first home is already baked into the pose. Introduce its identical
     // live overlay while idle, avoiding two new GPU layers during arrival.
@@ -69,11 +69,11 @@ export class LiteScene {
       loadScreen(chapter).then(image=>{this.screens.set(chapter,image);this.requestPaint();}).catch(()=>{this.screenRequests.delete(chapter)});
     }
     const bezel=docked&&this.overlayReady&&(this.quality.get(frames.length)||this.cache.has(frames.length))&&this.screens.has(chapter);
-    const key=bezel?frames.length:wanted;const image=this.quality.get(key)||(wanted===0&&this.startup?.initialVariant===this.variant?this.startup?.sharpInitial:null)||this.cache.get(key);
+    const key=bezel?frames.length:wanted;const image=this.quality.get(key)||(wanted===0&&this.startup?.initialVariant===this.variant?this.startup?.sharpInitial:null)||this.cache.get(key)||(!bezel?this.quality.nearest(wanted):null);
     // Keep the optional HD cache bounded independently. Promoting an HD image
     // into the small-pose cache would retain it after the HD queue evicted it.
     if(image&&this.cache.get(key)===image){this.cache.delete(key);this.cache.set(key,image);}
-    const frame=frames[wanted];
+    const frame=frames[image?.poseIndex??wanted];
     if(this.layoutKey!==width+':'+height+':'+compact+':'+this.variant){
       this.layoutKey=width+':'+height+':'+compact+':'+this.variant;
       this.layout=sceneLayout(width,height,compact,this.manifest.halfSize,this.manifest.moneyHalfSize);
@@ -85,7 +85,7 @@ export class LiteScene {
     const warmKey=this.quality.name+':'+this.layoutKey;
     if(this.warmKey!==warmKey){this.warmKey=warmKey;this.warmClip.replaceChildren();this.warmed.clear();}
     if(wanted<last)for(const index of [last,frames.length]){
-      const capture=this.quality.get(index);if(!capture||this.warmed.has(capture))continue;
+      const capture=this.quality.get(index);if(!capture||capture.sprite||this.warmed.has(capture))continue;
       const holder=document.createElement('div');Object.assign(holder.style,{position:'absolute',left:'0',top:'0',width:frames[last].width*layout.endHeight+'px',height:frames[last].height*layout.endHeight+'px',willChange:'transform'});
       Object.assign(capture.style,{display:'block',width:'100%',height:'100%'});holder.append(capture);this.warmClip.append(holder);this.warmed.add(capture);
     }

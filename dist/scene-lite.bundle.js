@@ -23,6 +23,10 @@ const screenSources = (innerWidth <= 1100 || ((devicePixelRatio||1)<=1.05&&inner
 const pending = new Map();
 function loadScreen(index) {
   if (!pending.has(index)) {
+    const startup=window.__parceloStartup;
+    if(index===0&&startup?.screenReady&&startup.screenHref===screenSources[0]){
+      const promise=startup.screenReady.catch(error=>{pending.delete(index);throw error;});pending.set(index,promise);return promise;
+    }
     const image = new Image(); image.decoding = 'async';
     image.src = screenSources[index];
     const promise = image.decode().then(() => image).catch(error => { pending.delete(index); throw error; });
@@ -164,100 +168,86 @@ return {sceneLayout};
 
 const __sceneModule4=(()=>{
 
-/* Fetch ahead of the wheel; decode one bitmap at a time. The small prepared
-   poses always own the angle, so a quality upgrade never changes the pose. */
-const base=new URL('./assets/hero-hd/desktop.json',import.meta.url);
-const LIMIT=14,DOWNLOADS=4;
+/* Load nine groups of approved angles, with bounded downloads and decoding. */
+const stillBase=new URL('./assets/hero-hd/desktop.json',import.meta.url);
+const motionBase=new URL('./assets/hero-motion/desktop.json',import.meta.url);
 class HeroQuality {
   constructor(repaint){
-    this.repaint=repaint;this.cache=new Map();this.pending=new Set();this.errors=new Set();this.ready=new Map();this.queue=[];
-    this.references=new Map([...document.querySelectorAll('link[data-hero-still]')].map(link=>[link.dataset.heroStill,[Number(link.dataset.displayWidth),Number(link.dataset.displayHeight)]]));
-    this.networkActive=0;this.active=0;this.generation=0;this.decoded=0;this.bytes=0;this.latency=250;this.velocity=0;this.initialFailed=false;this.controller=new AbortController();
+    this.repaint=repaint;this.cache=new Map();this.sheets=new Map();this.pending=new Set();this.errors=new Set();this.preloads=new Set();this.ready=new Map();this.queue=[];
+    this.references=new Map([...document.querySelectorAll('link[data-hero-still]')].map(l=>[l.dataset.heroStill,[+l.dataset.displayWidth,+l.dataset.displayHeight]]));
+    this.networkActive=0;this.active=0;this.generation=0;this.decoded=0;this.bytes=0;this.latency=250;this.velocity=0;this.controller=new AbortController();
   }
   async select(width,height,compact){
-    const framing=compact?(width<=700?'compact':'tablet'):(width>1366||height>768?'wide':'desktop');
-    const reference=this.references.get(framing);
-    const native=(devicePixelRatio||1)<=1.05&&reference&&width<=reference[0]&&height<=reference[1];
-    const name=framing+(native?'-1x':'');
-    if(this.name===name)return;this.name=name;const generation=++this.generation;
-    this.controller.abort();this.controller=new AbortController();
-    for(const image of this.cache.values())this.release(image);
-    this.cache.clear();this.pending.clear();this.errors.clear();this.ready.clear();this.queue=[];this.manifest=null;this.velocity=0;this.lastSample=0;this.initialFailed=false;
+    const framing=compact?(width<=700?'compact':'tablet'):(width>1366||height>768?'wide':'desktop'),reference=this.references.get(framing);
+    const native=(devicePixelRatio||1)<=1.05&&reference&&width<=reference[0]&&height<=reference[1],name=framing+(native?'-1x':'');
+    if(this.name===name)return;this.name=name;const generation=++this.generation;this.controller.abort();this.controller=new AbortController();
+    [...this.cache.values(),...this.sheets.values()].forEach(image=>this.release(image));
+    this.cache.clear();this.sheets.clear();this.pending.clear();this.errors.clear();this.preloads.clear();this.ready.clear();this.queue=[];this.motion=null;this.velocity=0;this.lastSample=0;
+    const embedded=window.__parceloStartup?.data.motion?.[name];
+    if(embedded){this.motion=embedded;this.update(this.wanted||0,this.raw||0,this.reduced);return;}
     try{
-      const response=await fetch(new URL(name+'.json',base),{signal:this.controller.signal});if(!response.ok)throw Error('HD unavailable');
-      const manifest=await response.json();if(generation!==this.generation)return;
-      this.manifest=manifest;this.update(this.wanted||0,this.raw||0,this.reduced);this.repaint();
-    }catch{/* Embedded originals remain usable when the optional upgrade fails. */}
+      const response=await fetch(new URL(name+'.json',motionBase),{signal:this.controller.signal});if(!response.ok)throw Error('Motion sheets unavailable');
+      const manifest=await response.json();if(generation!==this.generation)return;this.motion=manifest;this.update(this.wanted||0,this.raw||0,this.reduced);this.repaint();
+    }catch{/* Original per-angle files remain available. */}
   }
   update(wanted,raw,reduced){
-    const now=performance.now(),previous=this.wanted??wanted,direction=wanted===previous?(this.direction||1):wanted>previous?1:-1;this.direction=direction;
-    if(this.lastSample&&wanted!==previous){const speed=Math.abs(wanted-previous)/Math.max(16,now-this.lastSample);this.velocity=this.velocity*.6+Math.min(.18,speed)*.4;}
-    if(wanted!==previous||!this.lastSample)this.lastSample=now;
-    this.wanted=wanted;this.raw=raw;this.reduced=reduced;if(!this.manifest)return;
-    const last=this.manifest.frames.length-1,bezel=last+1;
-    const ahead=Math.max(2,Math.min(10,Math.ceil(this.velocity*(this.latency+80))));
-    const requests=[];if(raw>=.04||reduced)requests.push(last,bezel);
-    requests.push(wanted);
-    // Start the forecast pose too; the current pose can expire during download.
-    if(!reduced){requests.push(wanted+ahead*direction);for(let n=1;n<=ahead+4;n++)requests.push(wanted+n*direction);for(let n=1;n<=2;n++)requests.push(wanted-n*direction);}
-    this.queue=[...new Set(requests)].filter(i=>i>=0&&i<=bezel&&!this.cache.has(i)&&!this.pending.has(i)&&!this.errors.has(i));
-    this.pump();this.decode();this.trim();
+    const now=performance.now(),previous=this.wanted??wanted;this.direction=wanted===previous?(this.direction||1):wanted>previous?1:-1;
+    if(this.lastSample&&wanted!==previous)this.velocity=this.velocity*.6+Math.min(.18,Math.abs(wanted-previous)/Math.max(16,now-this.lastSample))*.4;
+    if(wanted!==previous||!this.lastSample)this.lastSample=now;this.wanted=wanted;this.raw=raw;this.reduced=reduced;if(!this.motion)return;
+    const sheet=this.motion.frames[wanted].sheet,keys=[];if(wanted===0)keys.push('first');
+    if(!reduced)keys.push('sheet:'+sheet,'sheet:'+(sheet+this.direction));
+    keys.push('last','bezel');if(!reduced)keys.push('sheet:'+(sheet+2*this.direction),'sheet:'+(sheet+3*this.direction),'sheet:'+(sheet-this.direction));
+    this.queue=[...new Set(keys)].filter(k=>this.entry(k)&&!this.has(k)&&!this.pending.has(k)&&!this.errors.has(k));this.pump();this.decode();this.trim();
   }
-  get(index){return this.cache.get(index);}
-  entry(index){return this.manifest.frames[index]||this.manifest.bezel;}
-  async blob(entry,index,signal,file=entry.file||entry.webp){
-    const response=await fetch(new URL(file,base),{signal,priority:index===0||index>=80?'high':'low'});
+  has(key){return key.startsWith('sheet:')?this.sheets.has(+key.slice(6)):this.cache.has(key==='first'?0:key==='last'?80:81);}
+  entry(key){return key.startsWith('sheet:')?this.motion?.sheets[+key.slice(6)]:this.motion?.[key];}
+  get(index){
+    if(this.cache.has(index))return this.cache.get(index);
+    const tile=this.motion?.frames[index],image=tile&&this.sheets.get(tile.sheet);if(!image)return;
+    this.sheets.delete(tile.sheet);this.sheets.set(tile.sheet,image);
+    return {sprite:true,image,tile,sheet:this.motion.sheets[tile.sheet],poseIndex:index,src:image.src+'#'+index,dataset:{tier:'sharp'}};
+  }
+  nearest(index){for(let gap=1;gap<=4;gap++){const image=this.get(index-gap*this.direction)||this.get(index+gap*this.direction);if(image)return image;}}
+  fallbackRequired(index){return !this.motion||this.errors.has('sheet:'+this.motion.frames[Math.min(index,80)].sheet);}
+  async blob(entry,key,signal,file=entry.file){
+    const response=await fetch(new URL(file,key.startsWith('sheet:')?motionBase:stillBase),{signal,priority:key.startsWith('sheet:')?'high':'low'});
     if(!response.ok)throw Error('Pose unavailable');return {blob:await response.blob(),file};
   }
   pump(){
-    while(this.networkActive<DOWNLOADS&&this.manifest&&this.queue.length){
-      const index=this.queue.shift();if(this.cache.has(index)||this.pending.has(index)||this.errors.has(index))continue;
-      const generation=this.generation,entry=this.entry(index),signal=this.controller.signal,start=performance.now();this.pending.add(index);
-      const startup=window.__parceloStartup;
-      if(index===0&&!this.initialFailed&&startup?.sharpReady&&startup.initialFile===entry.file){
-        startup.sharpReady.then(image=>{if(generation!==this.generation)return;this.cache.set(0,image);this.decoded++;this.bytes+=entry.bytes;this.trim();this.repaint();})
-          .catch(()=>{if(generation===this.generation){this.initialFailed=true;this.pending.delete(0);this.queue.push(0);this.pump();}})
-          .finally(()=>{if(generation===this.generation&&!this.initialFailed)this.pending.delete(0)});
-        continue;
+    while(this.networkActive<3&&this.motion&&this.queue.length){
+      const key=this.queue.shift();if(this.has(key)||this.pending.has(key)||this.errors.has(key))continue;
+      const generation=this.generation,entry=this.entry(key),signal=this.controller.signal,start=performance.now();this.pending.add(key);
+      const startup=window.__parceloStartup,preload=key==='first'?startup?.sharpReady:key==='last'?startup?.finalReady:key.startsWith('sheet:')?startup?.motionPreloads?.get(+key.slice(6)):undefined;
+      if(preload&&!this.preloads.has(key)&&startup.initialQuality===this.name){
+        let failed=false;this.preloads.add(key);preload.then(image=>{if(generation===this.generation){this.save(key,image);this.repaint();}})
+          .catch(()=>{failed=true;})
+          .finally(()=>{if(generation===this.generation){this.pending.delete(key);if(failed){this.queue.push(key);this.pump();}}});continue;
       }
       this.networkActive++;
-      this.blob(entry,index,signal).catch(error=>{
-        if(signal.aborted||entry.file===entry.webp)throw error;
-        return this.blob(entry,index,signal,entry.webp);
-      }).then(item=>{
-        if(generation!==this.generation)return;
-        this.latency=this.latency*.65+(performance.now()-start)*.35;
-        this.ready.set(index,{...item,entry,generation});this.decode();
-      }).catch(()=>{if(generation===this.generation){this.pending.delete(index);this.errors.add(index)}})
+      this.blob(entry,key,signal).catch(error=>{if(signal.aborted||!entry.webp||entry.file===entry.webp)throw error;return this.blob(entry,key,signal,entry.webp);})
+        .then(item=>{if(generation!==this.generation)return;this.latency=this.latency*.65+(performance.now()-start)*.35;this.ready.set(key,{...item,entry,generation});this.decode();})
+        .catch(()=>{if(generation===this.generation){this.pending.delete(key);this.errors.add(key);this.repaint();}})
         .finally(()=>{this.networkActive--;this.pump();});
     }
   }
   decode(){
-    if(this.active||!this.manifest||!this.ready.size)return;
-    const last=this.manifest.frames.length-1;
-    const score=i=>i===this.wanted?-1000:i>=last?-500:Math.abs(i-this.wanted)*(i<this.wanted?2:1);
-    const index=[...this.ready.keys()].sort((a,b)=>score(a)-score(b))[0],item=this.ready.get(index);this.ready.delete(index);
-    if(index!==0&&index<last&&Math.abs(index-this.wanted)>18){this.pending.delete(index);this.decode();return;}
-    const image=new Image();image.alt='';image.decoding='async';image.dataset.tier='hd';let url=URL.createObjectURL(item.blob);image.src=url;this.active=1;
+    if(this.active||!this.motion||!this.ready.size)return;
+    const wantedSheet=this.motion.frames[this.wanted].sheet,score=k=>k==='last'?-2:k==='bezel'?-1:k.startsWith('sheet:')?Math.abs(+k.slice(6)-wantedSheet):0;
+    const key=[...this.ready.keys()].sort((a,b)=>score(a)-score(b))[0],item=this.ready.get(key);this.ready.delete(key);
+    const image=new Image();image.alt='';image.decoding='async';image.dataset.tier=key.startsWith('sheet:')?'sharp':'hd';
+    let url=URL.createObjectURL(item.blob);image.src=url;this.active=1;
     image.decode().catch(async error=>{
-      if(item.generation!==this.generation||item.file===item.entry.webp)throw error;
-      URL.revokeObjectURL(url);const fallback=await this.blob(item.entry,index,this.controller.signal,item.entry.webp);item.blob=fallback.blob;
-      url=URL.createObjectURL(item.blob);image.src=url;await image.decode();
+      if(item.generation!==this.generation||!item.entry.webp||item.file===item.entry.webp)throw error;
+      URL.revokeObjectURL(url);const fallback=await this.blob(item.entry,key,this.controller.signal,item.entry.webp);item.blob=fallback.blob;url=URL.createObjectURL(item.blob);image.src=url;await image.decode();
     }).then(()=>{
-      if(item.generation!==this.generation){URL.revokeObjectURL(url);return;}
-      image.dataset.heroObjectUrl=url;this.cache.set(index,image);this.decoded++;this.bytes+=item.blob.size;this.trim();
-      if(index===this.wanted||index>=last)this.repaint();
-    }).catch(()=>{URL.revokeObjectURL(url);if(item.generation===this.generation)this.errors.add(index)})
-      .finally(()=>{this.active=0;if(item.generation===this.generation)this.pending.delete(index);this.decode();this.pump();});
+      if(item.generation!==this.generation){URL.revokeObjectURL(url);return;}image.dataset.heroObjectUrl=url;this.bytes+=item.blob.size;this.save(key,image);this.repaint();
+    }).catch(()=>{URL.revokeObjectURL(url);if(item.generation===this.generation){this.errors.add(key);this.repaint();}})
+      .finally(()=>{this.active=0;if(item.generation===this.generation)this.pending.delete(key);this.decode();this.pump();});
   }
+  save(key,image){if(key.startsWith('sheet:'))this.sheets.set(+key.slice(6),image);else this.cache.set(key==='first'?0:key==='last'?80:81,image);this.decoded++;this.trim();}
   release(image){if(image.dataset.heroObjectUrl)URL.revokeObjectURL(image.dataset.heroObjectUrl);}
-  trim(){
-    if(!this.manifest)return;const last=this.manifest.frames.length-1;
-    const candidates=[...this.cache.keys()].filter(i=>i!==0&&i!==this.wanted&&i<last)
-      .sort((a,b)=>Math.abs(b-this.wanted)*(b<this.wanted?2:1)-Math.abs(a-this.wanted)*(a<this.wanted?2:1));
-    for(const i of candidates){if(this.cache.size<=LIMIT)break;this.release(this.cache.get(i));this.cache.delete(i);}
-  }
-  stats(){return {profile:this.name,decoded:this.decoded,decodedBytes:this.bytes,cache:this.cache.size,active:this.active,downloads:this.networkActive,ready:this.ready.size};}
+  trim(){const current=this.motion?.frames[this.wanted]?.sheet;for(const [index,image] of this.sheets){if(this.sheets.size<=5)break;if(index===current)continue;this.release(image);this.sheets.delete(index);}}
+  stats(){return {profile:this.name,decoded:this.decoded,decodedBytes:this.bytes,cache:this.cache.size,sheets:this.sheets.size,active:this.active,downloads:this.networkActive,ready:this.ready.size,errors:[...this.errors]};}
 }
 
 return {HeroQuality};
@@ -328,7 +318,7 @@ class LiteScene {
     if(!reduced){nearby.push(wanted+ahead*direction);for(let offset=1;offset<=ahead+2;offset++)nearby.push(wanted+offset*direction);for(let offset=1;offset<=2;offset++)nearby.push(wanted-offset*direction);}
     if(raw>=.24)nearby.push(last,frames.length);
     this.queue=[...new Set(nearby)].filter(i=>i>=0&&i<=frames.length&&!this.quality.get(i)&&!this.cache.has(i)&&!this.pending.has(i)&&!this.badFrames.has(i));
-    this.pump(); prepareScreens(raw,chapterProgress);
+    if(this.quality.fallbackRequired(wanted))this.pump(); prepareScreens(raw,chapterProgress);
     const docked=motion.approach===1;
     // The first home is already baked into the pose. Introduce its identical
     // live overlay while idle, avoiding two new GPU layers during arrival.
@@ -339,11 +329,11 @@ class LiteScene {
       loadScreen(chapter).then(image=>{this.screens.set(chapter,image);this.requestPaint();}).catch(()=>{this.screenRequests.delete(chapter)});
     }
     const bezel=docked&&this.overlayReady&&(this.quality.get(frames.length)||this.cache.has(frames.length))&&this.screens.has(chapter);
-    const key=bezel?frames.length:wanted;const image=this.quality.get(key)||(wanted===0&&this.startup?.initialVariant===this.variant?this.startup?.sharpInitial:null)||this.cache.get(key);
+    const key=bezel?frames.length:wanted;const image=this.quality.get(key)||(wanted===0&&this.startup?.initialVariant===this.variant?this.startup?.sharpInitial:null)||this.cache.get(key)||(!bezel?this.quality.nearest(wanted):null);
     // Keep the optional HD cache bounded independently. Promoting an HD image
     // into the small-pose cache would retain it after the HD queue evicted it.
     if(image&&this.cache.get(key)===image){this.cache.delete(key);this.cache.set(key,image);}
-    const frame=frames[wanted];
+    const frame=frames[image?.poseIndex??wanted];
     if(this.layoutKey!==width+':'+height+':'+compact+':'+this.variant){
       this.layoutKey=width+':'+height+':'+compact+':'+this.variant;
       this.layout=sceneLayout(width,height,compact,this.manifest.halfSize,this.manifest.moneyHalfSize);
@@ -355,7 +345,7 @@ class LiteScene {
     const warmKey=this.quality.name+':'+this.layoutKey;
     if(this.warmKey!==warmKey){this.warmKey=warmKey;this.warmClip.replaceChildren();this.warmed.clear();}
     if(wanted<last)for(const index of [last,frames.length]){
-      const capture=this.quality.get(index);if(!capture||this.warmed.has(capture))continue;
+      const capture=this.quality.get(index);if(!capture||capture.sprite||this.warmed.has(capture))continue;
       const holder=document.createElement('div');Object.assign(holder.style,{position:'absolute',left:'0',top:'0',width:frames[last].width*layout.endHeight+'px',height:frames[last].height*layout.endHeight+'px',willChange:'transform'});
       Object.assign(capture.style,{display:'block',width:'100%',height:'100%'});holder.append(capture);this.warmClip.append(holder);this.warmed.add(capture);
     }

@@ -20,7 +20,7 @@ if (!files.has('index.html')) errors.push('dist/index.html não encontrado.');
 try {
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  const embedded=html.match(/<script type="application\/json" id="critical-poses">([\s\S]*?)<\/script>/);
- if(embedded)for(const [variant,pack] of Object.entries(JSON.parse(embedded[1]))) {
+ if(embedded)for(const [variant,pack] of Object.entries(JSON.parse(embedded[1])).filter(([key])=>key==='compact'||key==='desktop')) {
    const manifest=JSON.parse(fs.readFileSync(path.join(root,'models/hero-frames/'+variant+'.json'),'utf8'));
    if(JSON.stringify(manifest)!==JSON.stringify(pack.manifest))errors.push('Poses embutidas diferem de '+variant+'.json');
    if(pack.thumbs.length!==manifest.frames.length||!pack.atlas.startsWith('data:image/webp;base64,'))errors.push('Atlas inicial inválido: '+variant);
@@ -45,6 +45,16 @@ function check(value, source, mapped = false) {
   if (!files.has(target)) errors.push(`${source}: arquivo ausente ou nome com maiúsculas/minúsculas diferente: ${value}`);
 }
 for (const file of files) {
+  if (/^assets\/hero-motion\/(desktop|wide|compact|tablet)(?:-1x)?\.json$/.test(file)) {
+    try {
+      const manifest=JSON.parse(fs.readFileSync(path.join(root,file),'utf8'));
+      if(manifest.version!==1||manifest.frames.length!==81||manifest.sheets.length!==9)throw new Error('81 poses e nove grupos esperados');
+      for(const sheet of manifest.sheets)check(sheet.file,file);
+      for(const tile of manifest.frames){const sheet=manifest.sheets[tile.sheet];if(!sheet||tile.w<=0||tile.h<=0||tile.x<0||tile.y<0||tile.x+tile.w>sheet.width||tile.y+tile.h>sheet.height)throw new Error('pose fora do grupo');}
+      const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),embedded=JSON.parse(html.match(/<script type="application\/json" id="critical-poses">([\s\S]*?)<\/script>/)[1]);
+      if(JSON.stringify(embedded.motion?.[manifest.profile])!==JSON.stringify(manifest))throw new Error('grupos embutidos desatualizados');
+    }catch(error){errors.push(file+': grupos de poses inválidos: '+error.message);}
+  }
   if (/^assets\/hero-hd\/(desktop|wide|compact|tablet)(?:-1x)?\.json$/.test(file)) {
     try {
       const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));

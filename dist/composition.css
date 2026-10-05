@@ -187,6 +187,7 @@ body.is-story-open{overflow:hidden}
 
 /* Clear glass: the scene supplies the color, the rim supplies the depth. */
 .glass-nav{position:relative;isolation:isolate;align-items:center;gap:2px;max-width:calc(100% - 24px);padding:5px 8px;background:linear-gradient(115deg,#ffffff16,#ffffff05 48%,#d4ffed0d);border:1px solid #ffffff45;box-shadow:inset 0 1px 1px #ffffff66,inset 0 -1px 1px #ffffff1f,0 10px 28px #00000024;backdrop-filter:blur(12px) saturate(1.35);-webkit-backdrop-filter:blur(12px) saturate(1.35)}
+.glass-nav{height:52px;padding-block:3px}
 .glass-nav::before{content:"";position:absolute;z-index:-1;inset:2px;border-radius:inherit;pointer-events:none;background:linear-gradient(175deg,#ffffff0d,transparent 48%,#ffffff09);box-shadow:inset 1px 0 2px #ffffff20}
 .glass-nav a{color:#fff;white-space:nowrap;text-shadow:0 1px 5px #00120ee6;min-height:44px;display:flex;align-items:center;justify-content:center;padding:10px 18px}
 .glass-nav a:hover,.glass-nav a[aria-current]{color:#fff;background:#ffffff16}
