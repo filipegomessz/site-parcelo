@@ -5,6 +5,7 @@ export class HeroQuality {
   constructor(repaint){
     this.repaint=repaint;this.cache=new Map();this.sheets=new Map();this.pending=new Set();this.errors=new Set();this.preloads=new Set();this.ready=new Map();this.queue=[];
     this.references=new Map([...document.querySelectorAll('link[data-hero-still]')].map(l=>[l.dataset.heroStill,[+l.dataset.displayWidth,+l.dataset.displayHeight]]));
+    this.sourceCache=new Map();this.sourceBytes=0;
     this.networkActive=0;this.active=0;this.generation=0;this.decoded=0;this.bytes=0;this.latency=250;this.velocity=0;this.controller=new AbortController();
   }
   async select(width,height,compact){
@@ -12,6 +13,7 @@ export class HeroQuality {
     const native=(devicePixelRatio||1)<=1.05&&reference&&width<=reference[0]&&height<=reference[1],name=framing+(native?'-1x':'');
     if(this.name===name)return;this.name=name;const generation=++this.generation;this.controller.abort();this.controller=new AbortController();
     [...this.cache.values(),...this.sheets.values()].forEach(image=>this.release(image));
+    this.sourceCache.clear();this.sourceBytes=0;
     this.cache.clear();this.sheets.clear();this.pending.clear();this.errors.clear();this.preloads.clear();this.ready.clear();this.queue=[];this.motion=null;this.velocity=0;this.lastSample=0;
     const embedded=window.__parceloStartup?.data.motion?.[name];
     if(embedded){this.motion=embedded;this.update(this.wanted||0,this.raw||0,this.reduced);return;}
@@ -40,8 +42,23 @@ export class HeroQuality {
   nearest(index){for(let gap=1;gap<=4;gap++){const image=this.get(index-gap*this.direction)||this.get(index+gap*this.direction);if(image)return image;}}
   fallbackRequired(index){return !this.motion||this.errors.has('sheet:'+this.motion.frames[Math.min(index,80)].sheet);}
   async blob(entry,key,signal,file=entry.file){
-    const response=await fetch(new URL(file,key.startsWith('sheet:')?motionBase:stillBase),{signal,priority:key.startsWith('sheet:')?'high':'low'});
-    if(!response.ok)throw Error('Pose unavailable');return {blob:await response.blob(),file};
+    const url=new URL(file,key.startsWith('sheet:')?motionBase:stillBase).href;
+    if(signal.aborted)throw new DOMException('Aborted','AbortError');
+    const cached=this.sourceCache.get(url);
+    if(cached){this.sourceCache.delete(url);this.sourceCache.set(url,cached);return {blob:cached,file};}
+    const response=await fetch(url,{signal,priority:key.startsWith('sheet:')?'high':'low'});
+    if(!response.ok)throw Error('Pose unavailable');
+    const blob=await response.blob();
+    // Retain only compressed motion files, never extra decoded GPU images.
+    // Profile changes and aborted requests cannot repopulate an old cache.
+    if(key.startsWith('sheet:')&&!signal.aborted&&blob.size<=2097152){
+      this.sourceCache.set(url,blob);this.sourceBytes+=blob.size;
+      while(this.sourceCache.size>9||this.sourceBytes>2097152){
+        const oldest=this.sourceCache.keys().next().value;
+        this.sourceBytes-=this.sourceCache.get(oldest).size;this.sourceCache.delete(oldest);
+      }
+    }
+    return {blob,file};
   }
   pump(){
     while(this.networkActive<3&&this.motion&&this.queue.length){
@@ -49,7 +66,7 @@ export class HeroQuality {
       const generation=this.generation,entry=this.entry(key),signal=this.controller.signal,start=performance.now();this.pending.add(key);
       const startup=window.__parceloStartup,preload=key==='first'?startup?.sharpReady:key==='last'?startup?.finalReady:key.startsWith('sheet:')?startup?.motionPreloads?.get(+key.slice(6)):undefined;
       if(preload&&!this.preloads.has(key)&&startup.initialQuality===this.name){
-        let failed=false;this.preloads.add(key);preload.then(image=>{if(generation===this.generation){this.save(key,image);this.repaint();}})
+        let failed=false;this.preloads.add(key);preload.then(image=>{if(generation===this.generation){this.preloads.delete(key);this.save(key,image);this.repaint();}})
           .catch(()=>{failed=true;})
           .finally(()=>{if(generation===this.generation){this.pending.delete(key);if(failed){this.queue.push(key);this.pump();}}});continue;
       }
