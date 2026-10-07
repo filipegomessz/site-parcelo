@@ -52,6 +52,10 @@ export class LiteScene {
     const motion=transitionPose(raw,reduced),frames=this.manifest.frames,last=frames.length-1;
     const wanted=reduced?(motion.exchange?last:0):Math.round(Math.min(raw/DOCK_AT,1)*last);
     const previous=this.wanted??wanted,direction=wanted===previous?(this.direction||1):wanted>previous?1:-1;this.wanted=wanted;this.direction=direction;
+    // Reduced motion trades the note for the phone in one step. Cross-fade
+    // that step instead of cutting; without the preference nothing changes.
+    if(reduced&&this.shownPose!==undefined&&this.shownPose!==wanted)this.crossFade();
+    this.shownPose=reduced?wanted:undefined;
     this.quality.select(width,height,compact);this.quality.update(wanted,raw,reduced);
     const ahead=Math.max(2,Math.min(10,Math.ceil(this.quality.velocity*(this.quality.latency+80))));
     const nearby=[wanted];
@@ -62,13 +66,13 @@ export class LiteScene {
     const docked=motion.approach===1;
     // The first home is already baked into the pose. Introduce its identical
     // live overlay while idle, avoiding two new GPU layers during arrival.
-    if(docked && (this.scrollIdle || chapter > 0)) this.overlayReady = true;
+    if(docked && (this.scrollIdle || chapter > 0) && !this.fade) this.overlayReady = true;
     // Register the decoded screen while the phone is still approaching.
     if(raw>=.20&&!this.screenRequests.has(chapter)){
       this.screenRequests.add(chapter);
       loadScreen(chapter).then(image=>{this.screens.set(chapter,image);this.requestPaint();}).catch(()=>{this.screenRequests.delete(chapter)});
     }
-    const bezel=docked&&this.overlayReady&&(this.quality.get(frames.length)||this.cache.has(frames.length))&&this.screens.has(chapter);
+    const bezel=!this.fade&&docked&&this.overlayReady&&(this.quality.get(frames.length)||this.cache.has(frames.length))&&this.screens.has(chapter);
     const key=bezel?frames.length:wanted;const image=this.quality.get(key)||(wanted===0&&this.startup?.initialVariant===this.variant?this.startup?.sharpInitial:null)||this.cache.get(key)||(!bezel?this.quality.nearest(wanted):null);
     // Keep the optional HD cache bounded independently. Promoting an HD image
     // into the small-pose cache would retain it after the HD queue evicted it.
@@ -96,9 +100,11 @@ export class LiteScene {
     else if(image&&this.current!==wanted)this.element.replaceChildren(image);
     this.current=wanted;this.host.dataset.frame=String(wanted);
     if(image||this.startup)this.host.dataset.frames='ready';
-    this.screen.hidden=raw<.50;this.screen.style.opacity=docked&&this.overlayReady?'1':'.001';this.screen.style.zIndex=bezel?1:3;
+    // Reduced motion docks before .50; keep the live screen over the bare bezel.
+    const screenShown=raw>=.50||docked;
+    this.screen.hidden=!screenShown;this.screen.style.opacity=docked&&this.overlayReady&&!this.fade?'1':'.001';this.screen.style.zIndex=bezel?1:3;
     this.host.dataset.screenReady=String(this.screens.has(chapter));
-    if(raw>=.50){
+    if(screenShown){
       const screen=this.manifest.screen;this.position(this.screen,width/2+screen.x*layout.endHeight,layout.endY+screen.y*layout.endHeight,screen.width*layout.endHeight,screen.height*layout.endHeight);
       if(!this.screenRequests.has(chapter)){
         this.screenRequests.add(chapter);
@@ -117,6 +123,21 @@ export class LiteScene {
     parent.style.setProperty('--cash-x',layout.startX+'px');parent.style.setProperty('--cash-y',layout.startY+'px');parent.style.setProperty('--cash-width',layout.startHeight*1.33+'px');
     }
     this.trim();
+  }
+  crossFade(){
+    // The outgoing pose keeps its place and fades while the new one fades in.
+    // Its image moves to the ghost; the preview canvas is reused, so copy it.
+    this.fade?.cancel();this.ghost?.remove();
+    const ghost=this.element.cloneNode(false);ghost.removeAttribute('data-position');
+    for(const child of [...this.element.children]){
+      if(child instanceof HTMLCanvasElement){const copy=document.createElement('canvas');copy.width=child.width;copy.height=child.height;copy.getContext('2d').drawImage(child,0,0);ghost.append(copy);}
+      else ghost.append(child);
+    }
+    this.element.before(ghost);this.ghost=ghost;
+    const timing={duration:450,easing:'ease'};
+    ghost.animate([{opacity:1},{opacity:0}],{...timing,fill:'forwards'}).finished.then(()=>ghost.remove(),()=>{});
+    const fade=this.fade=this.element.animate([{opacity:0},{opacity:1}],timing);
+    fade.finished.then(()=>{if(this.fade===fade){this.fade=null;this.ghost=null;this.requestPaint();}},()=>{});
   }
   hdStats(){return this.quality.stats();}
   position(element,x,y,width,height){
