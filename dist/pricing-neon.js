@@ -5,7 +5,7 @@
   if (!contour) return;
 
   const lights = ['#pro-neon-light-a', '#pro-neon-light-b'].map(id => svg.querySelector(id));
-  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  const motion = matchMedia('not all') /* full motion for everyone, owner's decision 07/10/26 */;
   let perimeter = 0;
   let phase = .08;
   let visible = false;

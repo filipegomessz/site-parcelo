@@ -142,7 +142,3 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .pricing-card { background: linear-gradient(#202020, #070707 58%, #0b0b0b); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pricing-cta { transition: none; }
-  .pricing-neon-trails { transition: none; }
-}

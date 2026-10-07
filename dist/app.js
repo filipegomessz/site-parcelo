@@ -21,7 +21,7 @@ const chapterCount = chapterRail.querySelector('.chapter-count');
 const fallbackImage = document.querySelector('.phone-fallback img');
 const interlude = document.querySelector('.image-interlude');
 const qr = document.querySelector('.qr-dock');
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const reduced = matchMedia('not all') /* full motion for everyone, owner's decision 07/10/26 */;
 const compactLayout = matchMedia('(max-width: 1100px)');
 // Both the photograph and the phone move together; the palm stays registered.
 const navigationLinks = [...document.querySelectorAll('.glass-nav a:not(.nav-brand)')];

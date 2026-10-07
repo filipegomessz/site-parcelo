@@ -1,5 +1,5 @@
 // Keep ordinary page controls independent of the 3D scene loading.
-const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+const motionPreference = matchMedia('not all') /* full motion for everyone, owner's decision 07/10/26 */;
 const questions = [...document.querySelectorAll('.faq-item')];
 const faqStates = new Map();
 

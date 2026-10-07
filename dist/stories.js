@@ -4,7 +4,7 @@ const reflectionObserver=new IntersectionObserver(([entry])=>{
 },{rootMargin:'100% 0px'});
 reflectionObserver.observe(gallery.closest('.stories-section'));
 const frames = [...gallery.querySelectorAll('.story-frame')];
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const reduced = matchMedia('not all') /* full motion for everyone, owner's decision 07/10/26 */;
 const arrow = direction => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${direction === 'left' ? 'M19 12H5m6-6-6 6 6 6' : 'M5 12h14m-6-6 6 6-6 6'}"/></svg>`;
 function button(label, icon) {
   const element = document.createElement('button');
