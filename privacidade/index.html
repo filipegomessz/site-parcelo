@@ -12,7 +12,7 @@
 <header>
   <a class="brand" href="../"><span class="dot"></span>Parcelô</a>
   <h1>Política de Privacidade</h1>
-  <p class="updated">Última atualização: 31 de outubro de 2026.</p>
+  <p class="updated">Última atualização: 1º de novembro de 2026.</p>
 </header>
 
 <main>
@@ -38,7 +38,7 @@
   <li>Senha, quando a conta é criada por e-mail e senha. A senha é armazenada e verificada pelo Firebase Authentication, do Google, em formato criptografado. O Parcelô não tem acesso à senha do usuário.</li>
   <li>Ao entrar com o Google: e-mail, nome e foto do perfil Google. O nome e a foto são utilizados apenas para exibir quem está autenticado dentro do aplicativo.</li>
   <li>Um identificador interno da conta (uid), gerado automaticamente.</li>
-  <li>O registro de cada concordância com os Termos de Uso e com esta política: as datas das versões aceitas, a data e a hora em que o usuário concordou, se foi no cadastro ou num aviso de mudança, e a versão do aplicativo usada.</li>
+  <li>O registro de cada concordância com os Termos de Uso e com esta política: as datas das versões aceitas, a data e a hora em que o usuário concordou, se foi no cadastro ou num aviso de mudança, a versão do aplicativo usada e um código gerado a partir do e-mail da conta (hash), que não mostra o endereço, mas permite confirmar a quem o registro pertence.</li>
 </ul>
 <h2>2.2. Os dados inseridos pelo usuário</h2>
 <p>Tudo o que é cadastrado para fins de organização:</p>
@@ -102,7 +102,7 @@
 <p>TRANSFERÊNCIA INTERNACIONAL: a infraestrutura do Google pode armazenar e processar os dados em servidores localizados fora do Brasil. Essa transferência tem por fundamento a execução do contrato entre o usuário e o Parcelô (LGPD, art. 33, IX), somada às cláusulas contratuais e certificações mantidas pelo Google na condição de operador.</p>
 <h2>5. POR QUANTO TEMPO OS DADOS SÃO MANTIDOS</h2>
 <p>Enquanto a conta existir. Não há prazo mínimo de permanência: o usuário pode apagar o que quiser a qualquer momento dentro do aplicativo, e pode apagar tudo excluindo a conta.</p>
-<p>Excluída a conta, os dados são eliminados conforme o item 8. Podem ser mantidos apenas registros estritamente necessários ao cumprimento de obrigação legal, jamais os dados financeiros pessoais.</p>
+<p>Excluída a conta, os dados são eliminados conforme o item 8. A exceção é o registro das concordâncias com os Termos de Uso e esta política, que fica guardado por 5 anos depois da exclusão, para comprovar a concordância se for preciso, e é apagado automaticamente ao fim desse prazo. Fora isso, podem ser mantidos apenas registros estritamente necessários ao cumprimento de obrigação legal, jamais os dados financeiros pessoais.</p>
 <h2>6. COMO OS DADOS SÃO PROTEGIDOS</h2>
 <ul>
   <li>Toda a comunicação entre o aplicativo e o servidor é criptografada em trânsito.</li>
@@ -129,8 +129,9 @@
 <p>Caso entenda que seus direitos não foram atendidos, o usuário pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD), em gov.br/anpd.</p>
 <h2>8. COMO EXCLUIR A CONTA E OS DADOS</h2>
 <p>Pelo aplicativo: Ajustes, "Segurança e privacidade", opção "Excluir minha conta". Por segurança, será solicitada a confirmação de identidade antes da exclusão, que elimina a conta de login e todos os dados cadastrados. A própria tela de exclusão oferece "Baixar meus dados antes": como a exclusão é definitiva, vale guardar a cópia primeiro.</p>
-<p>Sem o aplicativo instalado: acesse <a href="../excluir-conta/">parceloapp.com.br/excluir-conta</a> e siga as instruções, ou escreva para <a href="mailto:privacidade@parceloapp.com.br">privacidade@parceloapp.com.br</a> a partir do e-mail cadastrado.</p>
-<p>O que é eliminado: a conta de autenticação, o e-mail e todos os cartões, compras, assinaturas, testes grátis, contas, financiamentos, investimentos, compras recorrentes, compromissos informais (com as pessoas cadastradas para eles), tags, o salário, os extras e o registro das concordâncias com os Termos de Uso e esta política. A foto de perfil, as fotos dos compromissos informais e o arquivo gerado por "Baixar meus dados", que ficam apenas no aparelho, são apagados do aparelho na mesma ação. Cópias em backup de segurança da infraestrutura são sobrescritas nos ciclos normais, em até 90 dias.</p>
+<p>Sem o aplicativo instalado: acesse <a href="../excluir-conta/">parceloapp.com.br/excluir-conta</a> e siga as instruções, ou escreva para <a href="mailto:privacidade@parceloapp.com.br">privacidade@parceloapp.com.br</a> a partir do e-mail cadastrado. Antes da exclusão, será pedida a confirmação por uma mensagem enviada ao e-mail cadastrado.</p>
+<p>O que é eliminado: a conta de autenticação, o e-mail e todos os cartões, compras, assinaturas, testes grátis, contas, financiamentos, investimentos, compras recorrentes, compromissos informais (com as pessoas cadastradas para eles), tags, o salário e os extras. A foto de perfil, as fotos dos compromissos informais e o arquivo gerado por "Baixar meus dados", que ficam apenas no aparelho, são apagados do aparelho na mesma ação. Cópias em backup de segurança da infraestrutura são sobrescritas nos ciclos normais, em até 90 dias.</p>
+<p>O que fica por 5 anos: o registro das concordâncias com os Termos de Uso e esta política (item 2.1), para comprovar a concordância se for preciso. Ele é apagado automaticamente ao fim do prazo.</p>
 <p>O que NÃO é eliminado automaticamente: o identificador interno da conta junto ao RevenueCat, o operador que administra a assinatura (item 4). Trata-se apenas do código de identificação — nunca o e-mail, o nome ou qualquer dado financeiro lançado no aplicativo —, e a exclusão da conta encerra o vínculo dele com o aparelho. Para eliminá-lo também junto ao operador, basta escrever para <a href="mailto:privacidade@parceloapp.com.br">privacidade@parceloapp.com.br</a>: o pedido é atendido em até 15 dias, sem custo.</p>
 <p>A exclusão é definitiva e não há como recuperar os dados depois.</p>
 <p>ATENÇÃO: excluir a conta NÃO cancela automaticamente uma assinatura do Parcelô Pro. O cancelamento é feito na Google Play, em Pagamentos e assinaturas, e deve ser realizado antes da exclusão da conta.</p>
