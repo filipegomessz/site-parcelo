@@ -102,6 +102,29 @@ for (const file of files) {
     }
   }
 }
+// O texto legal em vigor tem que estar também no endereço fixo da versão dele,
+// <página>/versoes/AAAA-MM-DD/, que é o que mostra depois o que a pessoa leu.
+// Quem grava é o tools/gerar-legais.pl. Sem esta conferência, mexer na
+// /excluir-conta/ (escrita à mão) e esquecer de rodá-lo publicaria a versão
+// nova sem cópia, e ninguém veria.
+const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const partesLegais = (html) => ({
+  data: html.match(/<p class="updated">([\s\S]*?)<\/p>/)?.[1],
+  main: html.match(/<main>\n([\s\S]*?)\n<\/main>/)?.[1],
+});
+for (const slug of ['termos', 'privacidade', 'excluir-conta']) {
+  const atual = partesLegais(fs.readFileSync(path.join(root, slug, 'index.html'), 'utf8'));
+  const [, dia, mes, ano] = atual.data?.match(/(\d{1,2})º? de (\p{L}+) de (\d{4})/u) ?? [];
+  const numero = meses.indexOf(mes?.toLowerCase()) + 1;
+  if (!numero || atual.main === undefined) { errors.push(`${slug}/index.html: não achei a data ou o <main>`); continue; }
+  const iso = `${ano}-${String(numero).padStart(2, '0')}-${dia.padStart(2, '0')}`;
+  const copia = path.join(root, slug, 'versoes', iso, 'index.html');
+  const guardada = fs.existsSync(copia) ? partesLegais(fs.readFileSync(copia, 'utf8')) : {};
+  // A cópia mora três pastas abaixo da raiz, então ../ vira ../../../ (a mesma conta do gerador).
+  if (guardada.data !== atual.data || guardada.main !== atual.main.replace(/((?:href|src)=")\.\.\//g, '$1../../../')) {
+    errors.push(`${slug}/: a versão em vigor (${iso}) não está igual em ${slug}/versoes/${iso}/. Rode "perl tools/gerar-legais.pl ../parcelo/assets/legal" e commite o resultado.`);
+  }
+}
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;

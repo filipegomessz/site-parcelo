@@ -58,7 +58,7 @@ significa trabalhar sobre código velho.
 | Caminho | Por quê |
 | --- | --- |
 | `assets/style.css` | serve as páginas legais, congelado por decisão do dono |
-| `termos/`, `privacidade/`, `excluir-conta/` | textos legais publicados (ver item 3) |
+| `termos/`, `privacidade/`, `excluir-conta/` | textos legais publicados, com as versões antigas em `versoes/` (ver item 3) |
 | `acao/`, `emails/` | fluxo de e-mail transacional do aplicativo |
 | `tools/gerar-legais.pl` | gerador das páginas legais |
 | `CNAME`, `.nojekyll`, `robots.txt` | infraestrutura da hospedagem |
@@ -86,6 +86,28 @@ de publicado, de remoção da loja.
 
 Se algum texto legal precisar mudar, **pare e avise**. A mudança começa no
 repositório do aplicativo.
+
+### As versões antigas ficam no ar (desde 01/11/2026)
+
+Cada versão dos Termos, da Política e da `/excluir-conta/` tem endereço fixo em
+`<página>/versoes/AAAA-MM-DD/`, com o texto exato que esteve no ar, e a lista em
+`<página>/versoes/`. O aplicativo grava a data dos textos com que a pessoa
+concordou; é aqui que se vê o que aquela data dizia.
+
+- Quem grava é o próprio `tools/gerar-legais.pl`, a cada execução, inclusive a
+  versão em vigor. **Mexeu na `/excluir-conta/` (escrita à mão), rode o gerador
+  de novo** antes de commitar.
+- A data no topo é a identidade da versão. Se um texto que já está na
+  `origin/main` mudar sem a data mudar, o gerador para. Não contorne: mude a
+  data (no app e no site) ou desfaça a mudança.
+- O `scripts/check-pages.mjs` recusa a publicação quando a página em vigor não
+  tem cópia igual em `versoes/`.
+- Nunca apague nem edite uma pasta de `versoes/`. O que fica congelado é o
+  `<h1>`, a linha da data e o `<main>`; o aviso do topo e o rodapé o gerador
+  refaz sozinho.
+- As versões anteriores a 01/11/2026 vieram do histórico de publicações do
+  GitHub Pages (só as que deram certo). Em 20/09 e 22/09/2026 a Política foi
+  publicada duas vezes no mesmo dia sem mudar a data: são as pastas `-2`.
 
 ---
 
