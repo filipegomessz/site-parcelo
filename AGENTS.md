@@ -8,8 +8,9 @@ promete aquilo, ou porque a loja de aplicativos confere.
 
 ## 1. O que é este repositório
 
-Site institucional do **Parcelô**, um aplicativo Android de controle de parcelas
-de cartão e contas recorrentes (pacote `br.com.parcelo`).
+Site institucional do **Parcelô**, um aplicativo de controle de parcelas de
+cartão e contas recorrentes (pacote `br.com.parcelo`), no Android e, em
+preparação, no iPhone.
 
 - Domínio: **https://parceloapp.com.br** (arquivo `CNAME`).
 - Hospedagem: **GitHub Pages pela origem "GitHub Actions"** desde 01/10/2026.
@@ -19,9 +20,12 @@ de cartão e contas recorrentes (pacote `br.com.parcelo`).
   `acao/`, `emails/`, `assets/style.css`, `robots.txt`, `CNAME` e `.nojekyll`.
   Esses endereços são usados fora do site (Play e e-mails do app) e não podem
   sumir. Página nova da raiz que precise ir ao ar entra na lista do fluxo.
-- O `index.html`, o `assets/landing.*`, o `assets/js/` e o `assets/img/` da raiz
-  são da landing antiga: continuam no repositório, mas **não são mais
-  publicados**. A landing no ar é `dist/index.html`.
+- A landing no ar é `dist/index.html`. A fonte dela é a pasta local
+  `D:\Coisas Aleatorias\site-parcelo-v4`, que tem os scripts que geram as
+  imagens do giro e o pacote da cena: mudança de texto se faz igual nos dois
+  `dist/index.html`. A landing antiga da raiz (`index.html`, `assets/landing.*`,
+  `assets/js/`, `assets/img/`, `assets/fonts/`) foi apagada em 07/11/2026, a
+  pedido do dono; está no histórico do Git.
 - **HTML, CSS e JavaScript servidos como arquivo. Sem build.**
   Não existe `package.json`, não existe `npm run dev`, não existe bundler, e não
   vai passar a existir. Não crie nenhum dos três. Os únicos comandos são
@@ -64,14 +68,12 @@ significa trabalhar sobre código velho.
 | `CNAME`, `.nojekyll`, `robots.txt` | infraestrutura da hospedagem |
 | `.github/workflows/github-pages.yml` | é ele que põe o site no ar |
 
-Sobra para você: **`dist/`** (o site que está no ar) e `Imagens/`. Os itens 4 a 6
-abaixo foram escritos para a landing antiga, mas as regras de privacidade (item
-4) e de texto (item 5) valem igual para o site novo.
-Da landing antiga, que não vai mais ao ar: `index.html`, `assets/landing.css`,
-`assets/landing.js` e `assets/img/`. Mais `tools/exportar-tela.html` e
-`tools/exportar-tela.mjs`, que são ferramenta de linha de comando, não página do
-site: geram a textura da tela para o modelo 3D (item 6). O que sai deles cai em
-`tools/saida/`, que o Git ignora.
+Sobra para você: **`dist/`** (o site que está no ar) e `Imagens/`. As regras de
+privacidade (item 4) e de texto (item 5) valem para o site inteiro.
+`tools/exportar-tela.html` e `tools/exportar-tela.mjs` são ferramenta de linha de
+comando, não página do site: geravam a textura da tela do modelo 3D da landing
+antiga e do `site-parcelo-v2`. O que sai deles cai em `tools/saida/`, que o Git
+ignora.
 
 ---
 
@@ -120,21 +122,16 @@ aplicativo **e o site**. Ou seja:
 - 🚫 Nada de Google Analytics, pixel da Meta, Hotjar, Clarity, cookie de medição.
 - 🚫 Nada de CDN, nem para biblioteca, nem para fonte. Nenhum host externo.
   Um CDN entrega o IP de quem foi só ler a política, e é isso que se evita aqui.
-- ✅ Biblioteca é permitida, desde que **baixada para dentro do repositório**.
-  Já estão em `assets/js/`: GSAP 3.12.5, ScrollTrigger e Lenis 1.3.26. A fonte
-  Inter variável (subset latino) está em `assets/fonts/inter-latin.woff2`.
+- ✅ Biblioteca é permitida, desde que **baixada para dentro do repositório**
+  (as do site no ar ficam em `dist/vendor/`). As fontes ficam em `dist/fonts/`,
+  e as da abertura vão embutidas no próprio `dist/index.html`.
 - ✅ Precisa de outra biblioteca? **Pergunte antes.** Ela tem que ser
   versionada aqui primeiro.
 
-A página inteira carrega hoje com **8 requisições, todas locais** (a fonte, o
-CSS, três bibliotecas, o `landing.js` e duas imagens: a moldura do aparelho e o
-avatar da tela). Se uma alteração sua adicionar host externo, ela está errada.
+Toda requisição da página é local. Se uma alteração sua adicionar host externo,
+ela está errada.
 
-A única medição que existe é **UTM nos links da Play**, sem script e sem cookie.
-São cinco campanhas distintas (`lp-nav`, `lp-hero`, `lp-preco-gratis`,
-`lp-preco-pro`, `lp-final`) sobre
-`https://play.google.com/store/apps/details?id=br.com.parcelo`. Ao mexer num
-botão, preserve o UTM dele.
+Não existe medição nenhuma: os links da Play do `dist/` não têm UTM.
 
 ---
 
@@ -146,103 +143,55 @@ botão, preserve o UTM dele.
   código. Use vírgula, ponto ou parênteses.
 - 🚫 **Nada inventado:** sem depoimento, sem prêmio, sem citação de imprensa, sem
   número de usuários. O produto não tem nada disso ainda.
-- 🚫 **Não cite o concorrente pelo nome.** A comparação de preço na página fala
-  em "a partir de R$ 40 por mês", e esse número precisa ser reconferido antes de
-  qualquer republicação, porque preço de concorrente muda.
+- 🚫 **Não cite o concorrente pelo nome.** Comparação de preço com concorrente,
+  se voltar, precisa ser reconferida antes de cada publicação, porque preço de
+  concorrente muda.
 - ⚠️ **Não prometa automação que não existe.** O aplicativo **não conecta com
   banco, não lê fatura e não pede senha de banco**. O que ele faz é guardar um
   compromisso cadastrado uma vez e repetir pelos meses seguintes. Escorregar para
   "ele lê seus gastos" é promessa falsa no meio de uma página que vende
   privacidade.
-- ⏳ **O selo "Em breve"** (`data-embreve` no card, mais
-  `<span class="selo-breve">`) marca recurso que ainda não existe no aplicativo:
-  financiamentos e empréstimos, aviso de teste grátis acabando, compromissos
-  informais. **A trava: ou o recurso está no build que está na loja, ou o selo
-  fica.** Remover o atributo devolve o card ao estado final sem buraco no
-  layout, e é assim que cada recurso "nasce" na página. Existe uma pergunta no
-  FAQ que declara isso ao visitante, e ela só sai junto com o último selo.
+- ⏳ **Recurso que ainda não está no aplicativo da loja não aparece como se
+  estivesse.** Ou ele está no build publicado, ou a página diz que ainda não.
 
 ---
 
 ## 6. Regras técnicas que não se quebram
 
-- ♿ **`prefers-reduced-motion` é obrigatório.** O bloco no fim do
-  `landing.css` põe cada cena animada no estado final. Cena nova sua entra
-  nesse bloco na mesma edição.
-- 🧩 **A página tem que funcionar sem JavaScript.** Um script inline no `<head>`
-  marca `<html class="js">`, e só sob essa marca o CSS esconde o que a rolagem
-  vai revelar. Se o `landing.js` não confirmar em 2,5s, a marca cai e a página
-  aparece inteira. Não quebre essa guarda.
 - 📱 **360px de largura é caso de primeira classe**, testado, não remendo no fim.
   Zero rolagem horizontal.
 - 🧊 **Nunca travar a aba.** Nada de cálculo pesado ou layout thrashing no
   listener de rolagem, `will-change` com parcimônia, imagem e canvas assíncronos.
 - 🖱️ **Sem hover falso.** Se o elemento não é clicável, ele não reage ao mouse.
-- 🔗 A sanfona do FAQ é `details`/`summary` nativo com `name="perguntas"`.
-  Funciona sem JavaScript, e é para continuar assim.
-
-### Como a landing está montada (para não desfazer sem querer)
-
-- **O feixe** de luz do canto superior direito é a assinatura visual da marca.
-  É um elemento fixo próprio (`.feixe`, `z-index: -1`) que só anima `transform` e
-  `opacity`. O fundo mora **só no `body`**, nunca no `html`, senão o feixe some.
-- **A linha do tempo** (`#linha`) é a peça central: usa `position: sticky`, e não
-  o pin do ScrollTrigger, para ser imune ao resize da barra do navegador no
-  celular. Quem escreve os números no DOM é o `gsap.ticker`, porque o scrub
-  renderiza suprimindo eventos.
-  🔴 A regra que fechou dez rodadas de ajuste ali, nas palavras do dono:
-  **"não deixar o gráfico começar antes e nem deixar o usuário sair do gráfico
-  antes de ele terminar"**. É fronteira, não distância. Resolver isso com mais
-  rolagem foi reprovado todas as vezes.
-- **O aparelho do hero é meio render, meio HTML.** A moldura
-  (`assets/img/aparelho-frente.webp`) é um render ortogonal do modelo 3D do
-  Galaxy S25 Ultra que mora no repositório `site-parcelo-v2`, feito no ângulo
-  de repouso pelo script `outputs/galaxy-s25-ultra/source/render_site_frame.py`.
-  A tela é DOM, encaixada nela por uma matriz que o próprio render mede e grava
-  em `renders/11-site-frame.json`. Mexeu no ângulo, roda o script de novo e
-  traz a matriz nova pro `.aparelho__vidro`.
-- **A tela do hero é a home do aplicativo reproduzida A PARTIR DO CÓDIGO**, não
-  desenhada de memória: as medidas saem de `lib/screens/month_screen.dart` e de
-  `lib/theme.dart`, em dp, e os ícones são o traçado real da fonte MaterialIcons
-  que o Flutter embarca. 🔴 **Mexeu na home do aplicativo, mexe aqui**, senão a
-  vitrine mostra uma tela que não existe mais.
-  🔴 **E, depois de mexer aqui, reexporte a textura:**
-  `node tools/exportar-tela.mjs`. O PNG que sai é a tela do modelo 3D no
-  repositório `site-parcelo-v2`, e é copiado para
-  `site-parcelo-v2/public/textures/tela-home.png` **à mão**, de propósito: o
-  crescimento em duas telas diferentes começa quando cada repositório passa a
-  ter a sua. Esta é a fonte, a de lá é cópia carimbada. Detalhe no
-  `LEIA.md` que fica ao lado do PNG.
-- **A segunda tela (a folha "Nova compra parcelada", em Como funciona) ainda é
-  a reserva desenhada**, em em, e ganhou a mesma moldura. Quando ela for
-  reproduzida a partir de `lib/screens/add_sheets.dart`, o CSS de
-  `.tela--lancamento` sai inteiro.
-- **Identidade:** fundo `#0a1b13`, cards `#13291f`, divisor `#1e3a2c`, texto
-  `#fff`, apagado `#93ac9f`, menta `#00c86f`, feixe `#00e884`. Alinhado à
-  esquerda, rótulo em caixa alta menta sobre número grande, raio 26 nos cards,
-  vidro fosco para o que está travado. Nada centralizado e simétrico, nada de
-  espaçamento tímido e uniforme.
+- 🎞️ **O site ignora "reduzir animações" do aparelho**, por decisão do dono em
+  07/10/2026: todo mundo vê o giro completo. Não volte a respeitar a opção sem
+  ele pedir.
+- 🧱 O `dist/` carrega o `scene-lite.bundle.js`, não os módulos soltos. Mexeu
+  num `.js` da cena: refaça o pacote pelos scripts do `site-parcelo-v4` e troque
+  o `?v=` no `index.html`. O detalhe e os relatórios ficam no v4.
 
 ### Para ver rodando
 
-Sirva a pasta por HTTP (qualquer servidor estático). **Não abra por `file://`**:
-os scripts não rodam direito e nenhuma animação aparece.
+`node serve.mjs` serve o `dist/` em `http://127.0.0.1:4173`. **Não abra por
+`file://`**: os scripts não rodam direito e nenhuma animação aparece.
 
 ---
 
 ## 7. O aplicativo, em uma tela (o que a copy pode afirmar)
 
-- **Parcelô**, Flutter, **Android** (pacote `br.com.parcelo`). iOS ainda não
-  existe, e por isso o botão da App Store na página é um estado travado com
-  "Em breve", não um link.
+- **Parcelô**, Flutter, **Android** (pacote `br.com.parcelo`). A versão do
+  iPhone está em preparação e ainda não está na App Store. O selo da App Store
+  só entra quando o app estiver disponível pra baixar: a licença da Apple só
+  vale a partir daí, e a arte tem que ser a oficial, sem alteração.
 - Backend **Firebase** (Firestore com cache offline, Firebase Auth com Google e
   e-mail). **Não há conexão com banco, leitura de fatura ou Open Finance.**
 - O que ele faz: soma parcelas de cartão, assinaturas e contas do mês, e mostra
   o total antes de a fatura fechar. Cadastra-se o compromisso uma vez e ele se
   repete pelos meses seguintes.
-- **Grátis:** um cartão, assinaturas ilimitadas, visão do mês atual.
-  **Pro: R$ 4,99 por mês**, com primeiro mês grátis, e libera vários cartões,
-  projeção dos meses futuros, alertas e temas.
+- **Grátis:** com limite de quantidade (a lista está no card de planos do
+  `dist/index.html`) e só o mês atual.
+  **Pro: R$ 4,90 por mês no site** (decisão do dono em 07/11/2026, o preço da
+  App Store), com primeiro mês grátis.
 - Situação na loja: **teste fechado**, ainda não em produção aberta. O link da
   Play na página pode não abrir para todo mundo, e isso é decisão consciente do
   dono.
@@ -253,20 +202,11 @@ os scripts não rodam direito e nenhuma animação aparece.
 
 ## 8. Pendências conhecidas (não são bugs para você "consertar" sozinho)
 
-1. **`assets/img/og.png` (1200x630) não existe.** Por isso a tag `og:image` está
-   fora do HTML de propósito, com comentário no lugar. Imagem de OG quebrada é
-   pior que nenhuma. A tag entra junto com o arquivo.
-2. **Continua não havendo screenshot real do aplicativo** em `assets/img/`, e
-   nem precisa: a tela do hero é reprodução em HTML feita a partir do código do
-   aplicativo, o que sai nítido em qualquer densidade e continua editável. O que
-   veio de imagem foi só o avatar (`avatar-joao.webp`), recortado de um print de
-   conta de demonstração. A folha de "Como funciona" ainda espera a reprodução
-   dela, a partir de `lib/screens/add_sheets.dart`.
-3. **A descrição de "Compromissos informais"** na seção "Vem por aí" é
-   interpretação, ainda não confirmada pelo dono. Está marcada por comentário no
-   HTML.
-4. **O "a partir de R$ 40" da comparação** foi conferido em 04/09/2026. Reconfira
-   antes de republicar.
+1. **Não existe imagem de OG.** O `dist/index.html` não tem `og:image`. Imagem
+   de OG quebrada é pior que nenhuma: a tag entra junto com o arquivo.
+2. **Os modelos 3D continuam no `dist/`** (os `.glb` de `dist/models/`), embora
+   a visita não baixe mais nenhum deles desde 04/10/2026. Tirar de vez é decisão
+   do dono.
 
 ---
 

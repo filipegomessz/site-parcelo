@@ -4,7 +4,7 @@ Site institucional do **Parcelô** (aplicativo Android, pacote `br.com.parcelo`)
 servido por GitHub Pages em <https://parceloapp.com.br>.
 
 HTML, CSS e JavaScript servidos como arquivo, sem build e sem gerenciador de
-pacote (as bibliotecas da landing são versionadas aqui, em `assets/js/`).
+pacote (as bibliotecas do site ficam versionadas aqui, em `dist/vendor/`).
 Editou, subiu, está no ar.
 
 > Vai mexer? Leia o `AGENTS.md` primeiro. Ele reúne as regras do site: o que é
