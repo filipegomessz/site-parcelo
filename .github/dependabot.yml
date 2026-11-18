@@ -1,0 +1,14 @@
+# Dependabot só pras Actions da publicação do site (achado 13 do pentest de
+# 10/11/26, decisão do dono de 18/11/26). As Actions estão fixadas pelo hash
+# do commit; uma vez por mês o Dependabot abre UM pedido com as versões novas
+# de todas. Nada entra sozinho: aceitar o pedido publica o site.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"

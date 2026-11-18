@@ -17,9 +17,11 @@ preparação, no iPhone.
   O fluxo `.github/workflows/github-pages.yml` roda a cada push na `main` e
   publica a pasta `dist/` (o site novo, que veio do `site-parcelo-v4`) somada às
   páginas que já estavam no ar: `privacidade/`, `termos/`, `excluir-conta/`,
-  `acao/`, `emails/`, `assets/style.css`, `robots.txt`, `CNAME` e `.nojekyll`.
-  Esses endereços são usados fora do site (Play e e-mails do app) e não podem
-  sumir. Página nova da raiz que precise ir ao ar entra na lista do fluxo.
+  `acao/`, `.well-known/`, `assets/style.css`, `robots.txt`, `CNAME` e
+  `.nojekyll`. Esses endereços são usados fora do site (Play e e-mails do app) e
+  não podem sumir. Página nova da raiz que precise ir ao ar entra na lista do
+  fluxo. A pasta `emails/` (modelos do login com senha) foi apagada em
+  18/11/2026, quando o dono desligou esse login; está no histórico do Git.
 - A landing no ar é `dist/index.html`. A fonte dela é a pasta local
   `D:\Coisas Aleatorias\site-parcelo-v4`, que tem os scripts que geram as
   imagens do giro e o pacote da cena: mudança de texto se faz igual nos dois
@@ -63,7 +65,9 @@ significa trabalhar sobre código velho.
 | --- | --- |
 | `assets/style.css` | serve as páginas legais, congelado por decisão do dono |
 | `termos/`, `privacidade/`, `excluir-conta/` | textos legais publicados, com as versões antigas em `versoes/` (ver item 3) |
-| `acao/`, `emails/` | fluxo de e-mail transacional do aplicativo |
+| `acao/` | fluxo de e-mail transacional do aplicativo (parado desde que o login com senha saiu, em 18/11/2026) |
+| `.well-known/security.txt` | contato pra quem achar falha; o `Expires` vence em um ano, e o `check-pages.mjs` para a publicação quando vence |
+| `.github/dependabot.yml` | propõe, uma vez por mês, a troca dos hashes das Actions do fluxo |
 | `tools/gerar-legais.pl` | gerador das páginas legais |
 | `CNAME`, `.nojekyll`, `robots.txt` | infraestrutura da hospedagem |
 | `.github/workflows/github-pages.yml` | é ele que põe o site no ar |
@@ -183,8 +187,8 @@ Não existe medição nenhuma: os links da Play do `dist/` não têm UTM.
   iPhone está em preparação e ainda não está na App Store. O selo da App Store
   só entra quando o app estiver disponível pra baixar: a licença da Apple só
   vale a partir daí, e a arte tem que ser a oficial, sem alteração.
-- Backend **Firebase** (Firestore com cache offline, Firebase Auth com Google e
-  e-mail). **Não há conexão com banco, leitura de fatura ou Open Finance.**
+- Backend **Firebase** (Firestore com cache offline, Firebase Auth só com
+  Google desde 18/11/2026). **Não há conexão com banco, leitura de fatura ou Open Finance.**
 - O que ele faz: soma parcelas de cartão, assinaturas e contas do mês, e mostra
   o total antes de a fatura fechar. Cadastra-se o compromisso uma vez e ele se
   repete pelos meses seguintes.

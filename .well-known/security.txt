@@ -1,0 +1,4 @@
+Contact: mailto:contato@parceloapp.com.br
+Expires: 2027-11-18T03:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://parceloapp.com.br/.well-known/security.txt

@@ -31,8 +31,7 @@ try {
 let checked = 0;
 function check(value, source, mapped = false) {
   value = value.trim().replaceAll('&amp;', '&');
-  // %LINK% é preenchido pelo Firebase nos modelos de e-mail de /emails/.
-  if (!value || value.startsWith('#') || /^%[A-Z_]+%$/.test(value) || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value)) return;
+  if (!value || value.startsWith('#') || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value)) return;
   if (value.startsWith('/')) {
     errors.push(`${source}: caminho começa com / e pode quebrar no endereço do repositório: ${value}`);
     return;
@@ -123,6 +122,23 @@ for (const slug of ['termos', 'privacidade', 'excluir-conta']) {
   // A cópia mora três pastas abaixo da raiz, então ../ vira ../../../ (a mesma conta do gerador).
   if (guardada.data !== atual.data || guardada.main !== atual.main.replace(/((?:href|src)=")\.\.\//g, '$1../../../')) {
     errors.push(`${slug}/: a versão em vigor (${iso}) não está igual em ${slug}/versoes/${iso}/. Rode "perl tools/gerar-legais.pl ../parcelo/assets/legal" e commite o resultado.`);
+  }
+}
+// O security.txt (achado 13 do pentest de 10/11/26) diz pra onde escrever quem
+// achar uma falha. O Expires é obrigatório e vale no máximo um ano: vencido, o
+// arquivo deixa de valer sem ninguém ver. Por isso a publicação para aqui até
+// alguém trocar a data (uma linha, em .well-known/security.txt na raiz).
+{
+  const arquivo = path.join(root, '.well-known', 'security.txt');
+  if (!fs.existsSync(arquivo)) errors.push('.well-known/security.txt não entrou na publicação');
+  else {
+    const texto = fs.readFileSync(arquivo, 'utf8');
+    const campo = (nome) => texto.match(new RegExp(`^${nome}: (.+)$`, 'm'))?.[1]?.trim();
+    const vence = Date.parse(campo('Expires') ?? '');
+    if (!campo('Contact')?.startsWith('mailto:')) errors.push('security.txt: falta o Contact com mailto:');
+    if (campo('Canonical') !== 'https://parceloapp.com.br/.well-known/security.txt') errors.push('security.txt: Canonical diferente do endereço do arquivo');
+    if (Number.isNaN(vence)) errors.push('security.txt: Expires ausente ou fora do formato');
+    else if (vence <= Date.now()) errors.push(`security.txt: venceu em ${campo('Expires')}. Troque o Expires por uma data de até um ano pra frente.`);
   }
 }
 if (errors.length) {
